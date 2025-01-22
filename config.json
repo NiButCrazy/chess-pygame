@@ -1,0 +1,8 @@
+{
+    "__comment__": "这是注释",
+    "version": "v0.0.1-Beta",
+    "height": 800,
+    "width": 800,
+    "FPS": 60,
+    "volume": 0.5
+}
