@@ -38,7 +38,7 @@ def write_config(key: str, value: any) -> bool:
     """
     data[key] = value
     try:
-        with open("config.json", 'w', encoding='utf-8') as f:
+        with open("../config.json", 'w', encoding='utf-8') as f:
             # noinspection PyTypeChecker
             json.dump(data, f, indent=4, ensure_ascii=False)
         return True
@@ -54,7 +54,7 @@ def save_config() -> bool:
     :return:返回是否保存成功
     """
     try:
-        with open("config.json", 'w', encoding='utf-8') as f:
+        with open("../config.json", 'w', encoding='utf-8') as f:
             # noinspection PyTypeChecker
             json.dump(data, f, indent=4, ensure_ascii=False)
         return True
@@ -65,7 +65,7 @@ def save_config() -> bool:
 def reload_config():
     global data
     try:
-        with open("config.json", 'r', encoding='utf-8',) as f:
+        with open("../config.json", 'r', encoding='utf-8',) as f:
             data = json.load(f)
 
     except FileNotFoundError:
@@ -74,7 +74,7 @@ def reload_config():
         error_message("配置文件不是有效的 JSON 格式")
 
 try:
-    with open("config.json", 'r', encoding='utf-8',) as file:
+    with open("../config.json", 'r', encoding='utf-8',) as file:
         data = json.load(file)
 
 except FileNotFoundError:

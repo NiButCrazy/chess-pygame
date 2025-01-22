@@ -2,12 +2,13 @@
 管理所有场景的类
 """
 import pygame
+from common import resources
 
 __all__ = [
     "scene_manager"
 ]
-from uiBase import UIBase
-from config import get_config
+from .uiBase import UIBase
+from .config import get_config
 
 
 class SceneManager:
@@ -31,7 +32,7 @@ class SceneManager:
         :parameter bg_music: (可选) 背景音乐名
         :return:
         """
-        self.scene_music_list[scene_name] = bg_music
+        self.scene_music_list[scene_name] = "../resource/bgm/" + bg_music
         self.scene_list[scene_name] = scene
 
     def load_scene(self, scene_name: str) -> None:
@@ -75,7 +76,6 @@ class SceneManager:
         )
 
 
-
     def delete_scene(self, scene_name: str) -> None:
         """
         删除场景
@@ -91,9 +91,9 @@ class SceneManager:
         :return: 返回一个列表，list[0]是包含所有UIBase实例的列表，list[1]是一个背景图片的Surface对象
         """
         pygame.time.wait(500)
-        img = pygame.image.load("resource/welcome.png")
+        img = resources.WELCOME_bg_img
         bg_img = pygame.Surface((800, 800))
-        text = UIBase(screen, 300, 550, (0, 0),text = "好活当赏", font_size = 40,font_color = (255,255,255),enabled_event = False, center_anchor = True, user_font_family = True, font_family = "resource/font.ttf")
+        text = UIBase(screen, 300, 550, (0, 0),text = "好活当赏", font_size = 40,font_color = (255,255,255),enabled_event = False, center_anchor = True, user_font_family = True, font_family = "font.ttf")
         img_ui = UIBase(screen, 0, 150, (800,500), color=(0, 0, 0))
         img_ui.set_background_image(img)
         img_ui.opacity = 0
@@ -102,7 +102,7 @@ class SceneManager:
         img_ui.transition_opacity(255, 0.5, self.FPS_CLOCK).then(
             lambda : (
                 pygame.time.wait(1000),
-                self.smooth_toggle_scene(screen, "start_menu"),
+                self.smooth_toggle_scene(screen, "menu"),
             )
         )
 

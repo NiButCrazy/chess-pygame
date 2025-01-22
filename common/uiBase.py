@@ -344,7 +344,7 @@ class UIBase:
         :param font_color: (可选) 颜色
         :param font_size: (可选) 字号
         :param bold: (可选) 是否加粗
-        :param font_family: (可选) 字体,如果是自定义字体请填写文件路径，并且一定要设置user_font_family为True
+        :param font_family: (可选) 字体,如果是自定义字体请填写文件名称(并非路径)，并且一定要设置user_font_family为True
         :return:
         """
         if content is None:content = self.content
@@ -357,7 +357,10 @@ class UIBase:
         else: self.font_size = font_size
 
         if font_family == "": font_family = self.font_family
-        else: self.font_family = font_family
+        else:
+            font_family = '../resource/font/' + font_family
+            self.font_family = font_family
+
 
         if not self.user_font_family:
             font = pygame.font.SysFont(font_family,font_size)
@@ -533,7 +536,7 @@ class UIBase:
         从渲染列表中删除该UI
         :return:
         """
-        from sceneManager import scene_manager
+        from .sceneManager import scene_manager
         if self in scene_manager.now_scene[0]:
             scene_manager.now_scene[0].remove(self)
         if not self.parent_node is None:

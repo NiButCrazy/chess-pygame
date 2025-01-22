@@ -6,7 +6,8 @@ import pygame
 import time
 from common import config
 from common.scene import gameScene
-from common.scene import initialScene
+from common.resources import ICON
+from common.scene.menuScene import *
 from common.sceneManager import scene_manager
 from common.eventManager import emit, event_manager
 from common.inputBox import message_box
@@ -16,15 +17,14 @@ from common.inputBox import message_box
 # 初始化，切记这是所有游戏代码操作之前
 pygame.init()
 # 设置一个Surface类的图标
-icon = pygame.image.load("./resource/icon.png")
-pygame.display.set_icon(icon)
+pygame.display.set_icon(ICON)
 # 设置标题
-pygame.display.set_caption("国际象棋🤣👉🤡")
+pygame.display.set_caption("阿伟的国际象棋🤣👉🤡")
 # 设置屏幕大小
 screen = pygame.display.set_mode((config.get_config("width"), config.get_config("height")))
 # ==== 设定初始场景UI ====
 # 将菜单场景和游戏场景推入场景列表进行初始化
-scene_manager.push_scene("start_menu", startScene.start_menu_scene(screen), bg_music="resource/music2.mp3")
+scene_manager.push_scene("menu", create_menu_scene(screen), bg_music="music2.mp3")
 # 加载启动场景
 scene_manager.load_welcome_scene(screen)
 

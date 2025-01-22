@@ -2,7 +2,7 @@
 这是一个事件管理类，用于处理事件消息的传递与发送
 """
 import pygame
-from sceneManager import scene_manager
+from .sceneManager import scene_manager
 
 class EventManager:
     """
