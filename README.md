@@ -1,6 +1,8 @@
 # 国际象棋-Pygame
+[](https://github.com/oldsky11/chess/blob/pygame/resource/ui/icon.png)
+
 ![Static Badge](https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-python-blue?logo=python)
-![Static Badge](https://img.shields.io/badge/%E5%BC%95%E6%93%8E-pygame-yellow)
+![Static Badge](https://img.shields.io/badge/%E5%BC%95%E6%93%8E-pygame-pink)
 ![Static Badge](https://img.shields.io/badge/license-MIT-purple)
 ![GitHub contributors](https://img.shields.io/github/contributors/oldsky11/chess?label=%E8%B4%A1%E7%8C%AE%E8%80%85)
 ![GitHub Release](https://img.shields.io/github/v/release/oldsky11/chess?display_name=release&label=%E6%9C%80%E6%96%B0%E5%8F%91%E5%B8%83)
@@ -8,12 +10,14 @@
 
 
 ## 简介
-pygame重构版
+[`国际象棋`](https://github.com/oldsky11/chess)的pygame重构版，也是一个它的测试分支
+
+## 更新日志
+[点我查看](https://github.com/oldsky11/chess/blob/pygame/CHANGELOG.md)
 
 ## 版本
 >释放版本:`无`  
 >Beta版本:`v0.0.1-Beta`
-
 
 ## 语言
 >Python
