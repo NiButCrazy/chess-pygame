@@ -1,4 +1,4 @@
-# 国际象棋-Pygame <img src="resource/ui/icon.png" alt="icon" width="60">
+# <img src="resource/ui/icon.png" alt="icon" width="60"> 国际象棋-Pygame 
 ![Static Badge](https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-python-blue?logo=python)
 ![Static Badge](https://img.shields.io/badge/%E5%BC%95%E6%93%8E-pygame-pink)
 ![Static Badge](https://img.shields.io/badge/license-MIT-purple)
