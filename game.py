@@ -1,17 +1,16 @@
 """
 逻辑代码集合处和游戏入口
 """
-import sys
+
+from common import config
 import pygame
 import time
-from common import config
-from common.scene import gameScene
+import sys
 from common.resources import ICON
-from common.scene.menuScene import *
+from common.scene import menuScene, gameScene
 from common.sceneManager import scene_manager
 from common.eventManager import emit, event_manager
 from common.inputBox import message_box
-
 
 
 # 初始化，切记这是所有游戏代码操作之前
@@ -19,15 +18,16 @@ pygame.init()
 # 设置一个Surface类的图标
 pygame.display.set_icon(ICON)
 # 设置标题
-pygame.display.set_caption("阿伟的国际象棋🤣👉🤡")
+pygame.display.set_caption("阿伟的国际象棋 🤣👉🤡")
 # 设置屏幕大小
 screen = pygame.display.set_mode((config.get_config("width"), config.get_config("height")))
 # ==== 设定初始场景UI ====
 # 将菜单场景和游戏场景推入场景列表进行初始化
-scene_manager.push_scene("menu", create_menu_scene(screen), bg_music="music2.mp3")
+scene_manager.push_scene("menu", menuScene.create_scene(screen), bg_music="music2.mp3")
+scene_manager.push_scene("game", gameScene.create_scene(screen), bg_music="music1.mp3")
 # 加载启动场景
-scene_manager.load_welcome_scene(screen)
-
+# scene_manager.load_welcome_scene(screen)
+scene_manager.load_scene("game")
 
 while True:
     # 事件监听

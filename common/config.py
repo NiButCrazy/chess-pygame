@@ -6,9 +6,15 @@ import json
 import os
 from tkinter import messagebox
 
+# 清除 pygame 狗屎输出
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = '1'
+
+# 防止变量被其他模块导入造成污染
+__all__ = ["get_config", "get_config_all", "write_config", "save_config", "reload_config"]
 
 # 把当前目录设置为工作目录，防止外部运行某个脚本无法定位目录
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 
 def error_message(message):
     # 创建一个简单的Tkinter警告弹窗

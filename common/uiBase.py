@@ -1,9 +1,11 @@
 """
 自定义一个pygame的UI基类
 """
+import sys
 from typing import Callable,Any
 
 import pygame
+from common.resources import f
 
 
 class UIChildrenList(list):
@@ -41,7 +43,10 @@ class Timer:
 
     def use_callback(self):
         if not self.__callback is None:
-            return self.__callback(**self.__option)
+            if self.__option:
+                return self.__callback(self.__option)
+            else:
+                return self.__callback()
 
 
 class UIBase:
@@ -459,8 +464,17 @@ class UIBase:
         self.__dest_opacity = dest_opacity
         if fps_clock == 0.0:
             fps_clock = self.__fps_clock
-        # 总过渡步数
-        self.__opacity_step = int( duration / fps_clock )
+        try:
+            # 总过渡步数
+            self.__opacity_step = int( duration / fps_clock )
+        except  ZeroDivisionError as e:
+            print('出现 {f("除零错误", "red")}，可能是FPS过低导致动画尝试将数值除以零，建议将 {f("FPS调至30", "blue")} 以上')
+            print(f'以下是错误报告: \033[31m{e}')
+            sys.exit(1)
+        except TypeError as e:
+            print(f'出现 {f("类型错误", "red")}，可能是函数 {f("transition_opacity", "blue")} 在游戏循环开始之前被使用，如果想在初始化中使用，建议传入 {f("fps_block", "blue")} 参数')
+            print(f'以下是错误报告: \033[31m{e}')
+            sys.exit(1)
         # 是否已经处于过渡中
         self.__transition_opacity_running = True
         # 过渡步长

@@ -16,8 +16,8 @@
 [点我查看](https://github.com/oldsky11/chess/blob/pygame/CHANGELOG.md)
 
 ## 版本
->释放版本:`无`  
->Beta版本:`v0.0.2-Beta`
+>释放版本:`v0.0.2`  
+>Beta版本:`v0.0.3-Beta`
 
 ## 语言
 >Python

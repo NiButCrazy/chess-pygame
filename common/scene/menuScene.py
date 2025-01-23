@@ -17,7 +17,7 @@ from common.sceneManager import scene_manager
 
 
 __all__ = [
-    "create_menu_scene",
+    "create_scene",
 ]
 
 # FPS预设列表d
@@ -42,7 +42,7 @@ event_manager.register_event("打开设置")
 event_manager.register_event("打开致谢")
 event_manager.register_event("打开排行")
 
-def create_menu_scene(screen: pygame.Surface) -> tuple[list[StartSceneBtn], pygame.Surface]:
+def create_scene(screen: pygame.Surface) -> tuple[list[StartSceneBtn], pygame.Surface]:
     """
     开始菜单场景
     :param screen: 想要绘制的Surface对象
@@ -144,8 +144,8 @@ def open_setting(screen: pygame.Surface, btn: StartSceneBtn):
         setting_ui = uiBase.UIBase(screen, 100, -30, (600,800))
         setting_ui.set_background_image(setting_ui_background_img)
         # 加载设置选项操作的图片
-        btn_right_arrow_img = pygame.image.load("resource/right.png")
-        btn_left_arrow_img = pygame.image.load("resource/left.png")
+        btn_right_arrow_img = resources.MENU_ui_btn_right_arrow_img
+        btn_left_arrow_img = resources.MENU_ui_btn_left_arrow_img
         # 背景图片设为遮罩子节点，方便管理
         setting_ui_mask.children.append(setting_ui)
         # 创建一个关闭设置UI的函数
@@ -158,6 +158,8 @@ def open_setting(screen: pygame.Surface, btn: StartSceneBtn):
             btn.has_open_ui = False
             # 保存配置
             save_config()
+            # 及时更新信息
+            scene_manager.ui_dict["base_info"].set_text("双人互啄 {0}".format(get_config("player_names")[get_config("player_name_index")]))
             # 淡出
             setting_ui_mask.transition_opacity(0, 0.1, fps_clock, children_together = False).then(lambda **options: setting_ui_mask.close())
             setting_ui.transition_opacity(0, 0.2, fps_clock)
@@ -170,14 +172,11 @@ def open_setting(screen: pygame.Surface, btn: StartSceneBtn):
         setting_ui_mask.bind_keyboard_callback(pygame.K_ESCAPE, pygame.KEYUP, close_setting_ui)
 
         # =========================================创建设置UI的具体内容=============================================
-        common_option = {"font_size": 25, "font_color": (0, 0, 0), "font_family": "resource/font.ttf", "user_font_family":True}
-        map_info = get_config("map_size")
+        common_option = {"font_size": 25, "font_color": (0, 0, 0), "font_family": "font.ttf", "user_font_family":True}
         setting_ui_dict = {
-            "玩家名称": ( f"{get_config('player_names')[get_config('player_name_index')]}", "用于排行榜记录" ),
+            "玩家名称": ( f"{get_config('player_names')[get_config('player_name_index')]}", "知子莫如父" ),
             "窗口大小": ( f"{get_config('width')} x {get_config('height')}", "暂不支持更改" ),
             "游戏帧率": ( f"{get_config('FPS')} FPS", "你玩的不是3A大作" ),
-            "地图大小": ( f"{map_info[0]} x {map_info[1]}", "可在配置文件自定义" ),
-            "地雷数量": ( f"{get_config('bomb_number')}", "我劝你善良" ),
             "背景音乐": ( f"{int(get_config('volume') * 100)}", "调整背景音乐的音量" )
         }
         ui_num = 0
@@ -198,9 +197,7 @@ def open_setting(screen: pygame.Surface, btn: StartSceneBtn):
                 setting_info.name = get_config('player_names')[get_config('player_name_index')]
             else:
                 setting_info.name = title
-            if title == "地雷数量":
-                global setting_info_bomb_number
-                setting_info_bomb_number = setting_info
+
             # 扩大判定区域，使得可以按到箭头按钮
             setting_info.rect.width += 80
             size = setting_info.rect.size
@@ -290,23 +287,6 @@ def setting_right_arrow_mouse_up(event: pygame.event.Event, option: dict[str, ui
             get_config_all()["FPS"] = now_fps
             scene_manager.FPS_CLOCK = 1 / now_fps
 
-    elif title == "地图大小":
-        index = MAP_SIZE_PRESET.index(get_config("map_size"))
-        if index + 1 < len(MAP_SIZE_PRESET):
-            now_map_size = MAP_SIZE_PRESET[index + 1]
-            setting_info.set_text(f"{now_map_size[0]} x {now_map_size[1]}")
-            now_bomb_number = int(now_map_size[1] * now_map_size[0] / 4)
-            setting_info_bomb_number.set_text(str(now_bomb_number))
-            get_config_all()["bomb_number"] = now_bomb_number
-            get_config_all()["map_size"] = now_map_size
-
-
-    elif title == "地雷数量":
-        now_bomb_number = get_config("bomb_number") + 1
-        if now_bomb_number == 0:
-            now_bomb_number = 1
-        setting_info.set_text(str(now_bomb_number))
-        get_config_all()["bomb_number"] = now_bomb_number
 
     elif title == "背景音乐":
         now_volume = get_config("volume")
@@ -343,26 +323,6 @@ def setting_left_arrow_mouse_up(event: pygame.event.Event, option: dict[str, uiB
             setting_info.set_text(str(now_fps) + " FPS")
             get_config_all()["FPS"] = now_fps
             scene_manager.FPS_CLOCK = 1 / now_fps
-
-    elif title == "地图大小":
-        index = MAP_SIZE_PRESET.index(get_config("map_size"))
-        if index - 1 >= 0:
-            now_map_size = MAP_SIZE_PRESET[index - 1]
-            setting_info.set_text(f"{now_map_size[0]} x {now_map_size[1]}")
-            get_config_all()["map_size"] = now_map_size
-            now_bomb_number = int(now_map_size[1] * now_map_size[0] / 4)
-            setting_info_bomb_number.set_text(str(now_bomb_number))
-            get_config_all()["bomb_number"] = now_bomb_number
-
-    elif title == "地雷数量":
-        now_bomb_number = get_config("bomb_number") - 1
-        if now_bomb_number >= -1:
-            if now_bomb_number <= 0:
-                now_bomb_number = -1
-                setting_info.set_text("∞")
-            else:
-                setting_info.set_text(str(now_bomb_number))
-            get_config_all()["bomb_number"] = now_bomb_number
 
 
     elif title == "背景音乐":
@@ -412,28 +372,6 @@ def setting_info_mouse_up(event: pygame.event.Event, option: dict[str, tuple[uiB
             btn_right_arrow.enabled_event = False
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
-    elif title == "地图大小":
-        now_map_size = get_config("map_size")
-        if now_map_size not in MAP_SIZE_PRESET:
-            return pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-        if now_map_size == [10, 10]:
-            btn_left_arrow.opacity = 80
-            btn_left_arrow.enabled_event = False
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-        elif now_map_size == [50, 50]:
-            btn_right_arrow.opacity = 80
-            btn_right_arrow.enabled_event = False
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
-    elif title == "地雷数量":
-        now_bomb_number = get_config("bomb_number")
-        if now_bomb_number == -1:
-            btn_left_arrow.opacity = 80
-            btn_left_arrow.enabled_event = False
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-            tips.set_text("绝境之中仍有一线生机")
-        else:
-            tips.set_text("我劝你善良")
 
     elif title == "背景音乐":
         now_volume = get_config("volume")
@@ -447,7 +385,7 @@ def setting_info_mouse_up(event: pygame.event.Event, option: dict[str, tuple[uiB
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
     elif title == "玩家名称":
-        tips.set_text("用于排行榜记录")
+        tips.set_text("知子莫如父")
         if get_config("player_name_index") == 0:
             btn_right_arrow.opacity = 80
             btn_right_arrow.enabled_event = False
@@ -518,31 +456,6 @@ def setting_info_mouse_enter(event: pygame.event.Event, option: dict[str, tuple[
             btn_right_arrow.opacity = 80
             btn_right_arrow.enabled_event = False
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
-    elif title == "地图大小":
-        now_map_size = get_config("map_size")
-        # 自定义地图
-        if now_map_size not in MAP_SIZE_PRESET:
-            btn_left_arrow.display = False
-            btn_right_arrow.display = False
-            tips.set_text("自定义地图")
-            return
-        if now_map_size == [10, 10]:
-            btn_left_arrow.opacity = 80
-            btn_left_arrow.enabled_event = False
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-        elif now_map_size == [50, 50]:
-            btn_right_arrow.opacity = 80
-            btn_right_arrow.enabled_event = False
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
-    elif title == "地雷数量":
-        now_bomb_number = get_config("bomb_number")
-        if now_bomb_number == -1:
-            btn_left_arrow.opacity = 80
-            btn_left_arrow.enabled_event = False
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-            tips.set_text("绝境之中仍有一线生机")
 
     elif title == "背景音乐":
         now_volume = get_config("volume")
@@ -635,5 +548,5 @@ def open_create(screen: pygame.Surface, btn: StartSceneBtn):
         scene_manager.now_scene[0].append(create_ui_mask)
 
 def open_start_game(screen: pygame.Surface):
-    scene_manager.smooth_toggle_scene(screen,"start_game")
+    scene_manager.smooth_toggle_scene(screen,"game")
     event_manager.post_event("打开开始游戏")

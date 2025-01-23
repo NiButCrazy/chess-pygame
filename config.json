@@ -1,8 +1,12 @@
 {
     "__comment__": "这是注释",
-    "version": "v0.0.2-Beta",
+    "version": "v0.0.2",
     "height": 800,
     "width": 800,
     "FPS": 60,
-    "volume": 0.5
+    "volume": 0.5,
+    "player_names": [
+        "未命名"
+    ],
+    "player_name_index": 0
 }
