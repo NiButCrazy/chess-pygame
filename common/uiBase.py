@@ -8,6 +8,41 @@ import pygame
 from common.resources import f
 
 
+class Group:
+    """
+    单纯用于UIBase的children分组，方便管理
+    """
+    def __init__(self, name: str):
+        """
+        创建一个组
+        :param name:
+        """
+        self.children = []
+        self.name = name
+
+    def append(self, __object):
+        """
+        添加子节点
+        :param __object: 子节点对象
+        :return:
+        """
+        self.children.append(__object)
+
+    def update(self, fps_clock):
+        # 更新子节点
+        for child in self.children:
+            child.update(fps_clock)
+
+    def receive_event(self, event: pygame.event.Event, **option) -> bool:
+        for index in range(len(self.children) - 1, -1, -1):
+            if_continue_emit = self.children[index].receive_event(event, **option)
+            # 如果已被目标UI截断，则其他UI不再调用的此事件的处理函数
+            if not if_continue_emit:
+                option["stop_emit"] = True
+                return False
+        return True
+
+
 class UIChildrenList(list):
     """
     UI节点的子节点列表，提供了一系列方便的操作
@@ -58,7 +93,7 @@ class UIBase:
                 x: int,
                 y: int,
                 size: tuple = (0,0),
-                color: tuple = (255,255,255),
+                color: tuple | None = (255,255,255),
                 text: str = "",
                 font_size: int = 16,
                 font_color:tuple | str = (0,0,0),
@@ -316,6 +351,7 @@ class UIBase:
     def update(self, fps_clock):
         """
         游戏更新回调
+        :param fps_clock: 帧数频率
         :return:
         """
 
@@ -328,8 +364,12 @@ class UIBase:
 
         # 绘制自己（纯矩形图案或者图片）
         if self.background_img is None:
-            ui_surface = pygame.Surface((self.width, self.height))
-            ui_surface.fill(self.color)
+            if self.color is None:
+                ui_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            else:
+                ui_surface = pygame.Surface((self.width, self.height))
+                ui_surface.fill(self.color)
+
             ui_surface.set_alpha(self.opacity)
             self.screen.blit(ui_surface, self.rect)
         else:

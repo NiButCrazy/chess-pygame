@@ -12,7 +12,8 @@ YELLOW = (255,255,0)
 RED = (255,0,0)
 GREEN = (0,255,0)
 BLUE = (0,0,255)
-MAP_COLOR = (0, 198, 255)
+MAP_BORDER_COLOR = (0, 198, 255)
+MAP_BLOCK_BORDER_COLOR = (255, 163, 0)
 
 
 # cmd色彩
@@ -105,3 +106,23 @@ GAME_bg_img = pygame.image.load("../resource/image/background-img2.jpg")
 GAME_ui_play_img = pygame.image.load("../resource/ui/play.png")
 GAME_ui_pause_img = pygame.image.load("../resource/ui/paused.png")
 GAME_ui_back_btn_img = pygame.image.load("../resource/ui/left.png")
+
+# 棋子图片映射表
+CHESS_img_map: dict[str, dict[str, pygame.Surface]] = {
+    'white': {
+        'bin': pygame.image.load("../resource/image/white_bin.png"),
+        'che': pygame.image.load("../resource/image/white_che.png"),
+        "xiang": pygame.image.load("../resource/image/white_xiang.png"),
+        "ma": pygame.image.load("../resource/image/white_ma.png"),
+        'hou': pygame.image.load("../resource/image/white_hou.png"),
+        'wang': pygame.image.load("../resource/image/white_wang.png"),
+    },
+    'black': {
+        'bin': pygame.image.load("../resource/image/black_bin.png"),
+        'che': pygame.image.load("../resource/image/black_che.png"),
+        "xiang": pygame.image.load("../resource/image/black_xiang.png"),
+        "ma": pygame.image.load("../resource/image/black_ma.png"),
+        'hou': pygame.image.load("../resource/image/black_hou.png"),
+        'wang': pygame.image.load("../resource/image/black_wang.png"),
+    }
+}

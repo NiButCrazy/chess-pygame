@@ -2,6 +2,12 @@
 
 *日志使用 [Simple Changelog 汉化版](https://github.com/NiButCrazy/simple-changelog-Chinese) 生成*
 
+## [0.0.3-Beta] - 2025-01-25
+### 新增内容
+- 添加了 gameMap、basicChess、binChess 三个模块
+- 为 uiBase 模块添加 Group 类，方便对子节点的管理
+
+
 ## [0.0.2] - 2025-01-23
 ### 新增内容
 - 添加了一块棋盘地图绘制功能

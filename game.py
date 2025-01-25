@@ -28,6 +28,8 @@ scene_manager.push_scene("game", gameScene.create_scene(screen), bg_music="music
 # 加载启动场景
 # scene_manager.load_welcome_scene(screen)
 scene_manager.load_scene("game")
+# 帧率控制
+clock = pygame.time.Clock()
 
 while True:
     # 事件监听
@@ -58,4 +60,5 @@ while True:
     pygame.display.flip()
     # 保证帧率，注意！！！这种sleep控制帧数本质上是完全错误的，只是懒得修改以前的代码了
     time.sleep(scene_manager.FPS_CLOCK)
-
+    # 这是才正确的帧率控制器！但不适配目前的 UIBase 动画逻辑(╯°□°）╯︵ ┻━┻
+    # clock.tick(scene_manager.FPS)

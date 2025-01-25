@@ -10,6 +10,7 @@ from common import resources
 from common.eventManager import event_manager
 from common.uiBase import UIBase
 from common.config import *
+from common.gameMap import GameMap
 
 
 # 背景图片的画布，为了调整背景图片的大小和位置
@@ -131,35 +132,12 @@ def create_scene(screen: pygame.Surface) -> tuple[list[UIBase], pygame.Surface]:
         base_info,
         back_btn,
         game_ui,
-        start_game_btn
+        # start_game_btn
     ]
-
+    load_new_game(game_ui)
     return ui_list, background_surface
 
-def create_map(container: UIBase, size: int):
-    """
-    绘制地图
-    :param container: 要绘制的 UIBase 对象
-    :param size: 地图大小
-    :return:
-    """
-    game_map_base = pygame.Surface((size, size))
-    # 设置边框颜色
-    game_map_base.fill(resources.MAP_COLOR)
-    # 边框粗细
-    map_border = 4
-    # 每个方格的大小
-    block_size = (size - map_border * 2) // 8
 
-    # 绘制棋盘
-    for row in range(8):
-        for col in range(8):
-            color = resources.WHITE if (row + col) % 2 == 0 else resources.BLACK
-            pygame.draw.rect(game_map_base, color, (col * block_size + 4, row * block_size + 4,
-                                                    block_size,
-                                                    block_size))
-
-    container.set_background_image(game_map_base)
 
 # noinspection PyUnusedLocal
 def load_new_game(ui: UIBase, **option):
@@ -169,9 +147,9 @@ def load_new_game(ui: UIBase, **option):
     :param option: 函数携带参数
     :return:
     """
-    # ui.opacity = 255 # 调试用
-    ui.transition_opacity(255, 1) # 正常淡入
-    create_map(ui, 640)
+    ui.opacity = 255 # 调试用
+    # ui.transition_opacity(255, 1) # 正常淡入
+    game_map = GameMap(ui, 640)
     # 如果游戏是第一次开始，则...
     if not event_manager.game_has_started:
         event_manager.game_has_started = True

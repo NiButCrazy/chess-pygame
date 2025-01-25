@@ -20,7 +20,8 @@ class SceneManager:
         self.scene_list: dict[str, tuple[list[UIBase], pygame.Surface]] = {}
         self.scene_music_list: dict[str, str] = {}
         self.now_scene: tuple[list[UIBase], pygame.Surface] | None = None
-        self.FPS_CLOCK = 1 / get_config("FPS")
+        self.FPS = get_config("FPS")
+        self.FPS_CLOCK = 1 / self.FPS
         # 存储一些特殊的UI， 方便在所有模块调用
         self.ui_dict: dict[str, UIBase] = {}
 

@@ -526,7 +526,7 @@ def open_create(screen: pygame.Surface, btn: StartSceneBtn):
 
         create_title = uiBase.UIBase(screen, 400, 350, (0,0), text = "游戏开发", font_family = font_path, user_font_family = True, center_anchor = True, font_size = 40, font_color = (255, 255, 255), enabled_event = False)
         create_member = uiBase.UIBase(screen, 400, 400, (0, 0), text = "Ni But Crazy", font_family = font_path, user_font_family = True, center_anchor = True, font_size = 30, font_color = (255, 255, 255))
-        create_thank = uiBase.UIBase(screen, 400, 460, (0,0), text = "感谢阿伟的国际象棋脚本提供了逻辑基础", font_family = font_path, user_font_family = True, center_anchor = True, font_size = 20, font_color = (255, 255, 255))
+        create_thank = uiBase.UIBase(screen, 400, 460, (0,0), text = "GitHub 开源地址", font_family = font_path, user_font_family = True, center_anchor = True, font_size = 20, font_color = (255, 255, 255))
         create_member.name = "member"
         create_member.opacity = 0
         create_title.opacity = 0
@@ -540,7 +540,7 @@ def open_create(screen: pygame.Surface, btn: StartSceneBtn):
 
         create_thank.mouse_enter(lambda event, option: (create_thank.set_text(font_color = (150, 150, 205), font_size = 20), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         create_thank.mouse_leave(lambda event, option: (create_thank.set_text(font_color = (255, 255, 255), font_size = 20), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-        create_thank.mouse_up(lambda event, option: open("https://github.com/oldsky11/chess"))
+        create_thank.mouse_up(lambda event, option: open("https://github.com/oldsky11/chess/tree/pygame"))
 
         create_ui_mask.transition_opacity(200, 0.1, fps_clock, children_together = False)
         create_ui.transition_opacity(255, 1, fps_clock)
