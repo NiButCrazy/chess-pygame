@@ -1,7 +1,6 @@
 """
-士兵棋子
+大象棋子
 """
-
 
 import pygame
 from .basicChess import BasicChess
@@ -9,7 +8,7 @@ from common.gameMap import GameMap
 from typing import Literal
 
 
-class BinChess(BasicChess):
+class XiangChess(BasicChess):
 
     offset_x = 20
     offset_y = 8
@@ -20,7 +19,7 @@ class BinChess(BasicChess):
                  chess_color: Literal["white", "black"],
                  chess_name: Literal["P1", "P2"]
                  ):
-        super().__init__(screen, x, y, size, game_map, "bin", chess_color, chess_name)
+        super().__init__(screen, x, y, size, game_map, "xiang", chess_color, chess_name)
 
 
 
@@ -28,7 +27,3 @@ class BinChess(BasicChess):
         active_block = self.game_map.map_data[self.list_y + self.toward][self.list_x]
         active_block.display = True
         self.game_map.active_block_set.add(active_block)
-
-
-
-        

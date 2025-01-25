@@ -2,10 +2,27 @@
 
 *日志使用 [Simple Changelog 汉化版](https://github.com/NiButCrazy/simple-changelog-Chinese) 生成*
 
+## [0.0.4-Beta] - 2025-01-25
+### 新增内容
+- 是的，我终于为棋盘添加了所有棋子以及类模块文件
+- 为 GameMap 添加了 [选择、清除] 等相应特效函数
+
+### 作出更改
+- 改变了部分模块的导入逻辑，防止产生循环套娃导入的现象
+- 把黑色棋子图片添加了白色描边，不会两眼一黑了
+
+### 不推荐使用功能
+- 棋子单独的功能判定还未做
+
+
 ## [0.0.3-Beta] - 2025-01-25
 ### 新增内容
 - 添加了 gameMap、basicChess、binChess 三个模块
 - 为 uiBase 模块添加 Group 类，方便对子节点的管理
+
+### 作出更改
+- 把 gameScene 里 的 create_map 功能集成进 gameMap 里面去
+- 现在 UIBase 类 支持绘制透明背景 UI
 
 
 ## [0.0.2] - 2025-01-23

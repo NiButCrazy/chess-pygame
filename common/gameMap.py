@@ -3,18 +3,21 @@
 """
 
 import pygame
-from typing import Any
+from typing import Any, Literal
 from common.uiBase import UIBase
 from common import resources
-from .chess.basicChess import BasicChess
-from .chess.binChess import BinChess
 
 
 class MapBlock:
     """
     地图方块类，记录地图方块信息
     """
+
     def __init__(self, screen: pygame.Surface, x: int, y: int, size: int, display:bool = True):
+
+        # 防止导致循环引用
+        from .chess.basicChess import BasicChess
+
         self.screen = screen
         self.list_x = x
         self.list_y = y
@@ -98,6 +101,10 @@ class GameMap:
         :return:
         """
 
+        # 防止导致循环引用
+        from .chess.basicChess import BasicChess
+
+        # 地图大小
         self.size = size
         # 地图背景基底
         self.game_map_base = pygame.Surface((size, size))
@@ -109,6 +116,8 @@ class GameMap:
         self.map_border = 4
         # 每个方格的大小
         self.block_size = (size - self.map_border * 2) // 8
+        # 选中的 chess
+        self.selected_chess: BasicChess | None = None
         # 信息叠加层已激活的对象集合
         self.active_block_set: set[MapBlock] = set()
         # 存储地图数据的对象
@@ -131,12 +140,49 @@ class GameMap:
                                                         self.block_size))
 
         container.set_background_image(self.game_map_base)
-
         container.mouse_up(self.map_position)
 
-
-
-
+        # 防止导致循环引用
+        from .chess import BinChess, CheChess, WangChess, MaChess, HouChess, XiangChess
+        # 记录双方玩家的棋子颜色， 默认上黑下白
+        self.chess_color = {
+            "P1": "black",
+            "P2": "white",
+        }
+        chess_type_list = ["che", 'ma', 'xiang', 'wang', 'hou', 'xiang', 'ma', 'che']
+        chess_type_dict = {
+            "che": CheChess,
+            "ma": MaChess,
+            "xiang": XiangChess,
+            "wang": WangChess,
+            "hou": HouChess,
+        }
+        chess_pos = {
+            "P1": [1, 0],
+            "P2": [6, 7]
+        }
+        # 将棋子放入棋盘
+        chess_name: Literal["P1", "P2"]
+        for chess_name in ['P1', 'P2']:
+            for x in range(8):
+                container.children.append(BinChess(
+                    self.container.screen,
+                    x, chess_pos[chess_name][0],
+                    self.block_size,
+                    self,
+                    self.chess_color[chess_name],
+                    chess_name
+                ))
+                container.children.append(
+                    chess_type_dict[chess_type_list[x]](
+                        self.container.screen,
+                        x, chess_pos[chess_name][1],
+                        self.block_size,
+                        self,
+                        self.chess_color[chess_name],
+                        chess_name
+                    )
+                )
 
     def map_position(self, event: pygame.event.Event, option: dict[str, Any]):
         """
@@ -148,13 +194,7 @@ class GameMap:
 
         # 如果点击右键
         if event.button == 3:
-
-            # 关闭所有叠加层信息
-            for block in self.active_block_set:
-                block.display = False
-
-            # 清除所有已激活叠加层信息状态
-            self.active_block_set.clear()
+            self.cancel_select_chess()
             return
 
         elif event.button == 1:
@@ -171,13 +211,31 @@ class GameMap:
             # self.map_data[list_y][list_x].display = True
             # self.active_block_set.add(self.map_data[list_y][list_x])
             # print(self.active_block_set)
-            self.container.children.append(
-                BinChess(
-                    self.container.screen,
-                    list_x, list_y,
-                    self.block_size,
-                    "white", "P1"
-                )
-            )
+
+    def cancel_select_chess(self):
+        """
+        取消任何棋子的选中状态
+        :return:
+        """
+        if self.selected_chess is not None:
+            # 使得上一个被选中的棋子取消被选中的状态
+            self.selected_chess.selected = False
+            self.selected_chess.show_outline = None
+            self.selected_chess = None
+            for block in self.active_block_set:
+                block.display = False
+            self.active_block_set.clear()
+
+    def select_chess(self, chess):
+        """
+        选中棋子
+        :param chess: 一个 BasicChess 实例
+        :return:
+        """
+        # from .chess.basicChess import BasicChess
+        self.cancel_select_chess()
+        self.selected_chess = chess
+        self.selected_chess.selected = True
+        self.selected_chess.active_map_block()
 
 

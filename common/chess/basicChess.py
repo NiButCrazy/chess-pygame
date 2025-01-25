@@ -6,6 +6,7 @@
 import pygame
 from common.uiBase import UIBase
 from common import resources
+from common.gameMap import GameMap
 from typing import Literal
 
 
@@ -18,11 +19,13 @@ class BasicChess(UIBase):
     offset_y: int  # 棋子图片的 y 偏移量
     chess_img_size: tuple[int, int]  # 棋子图片的尺寸
     mouse_mask = pygame.mask.Mask((1, 1), True) # 鼠标的遮罩，方便后续做鼠标相关的碰撞箱处理
+    __towards = {'P1': 1, 'P2': -1} # 棋子朝向，1 朝下，-1 朝上
 
     def __init__(self, screen: pygame.Surface,
 
                  x: int, y: int,
                  size: int,
+                 game_map: GameMap,
                  chess_type: str, chess_color: Literal["white", "black"],
                  chess_name: Literal["P1", "P2"],
                  ):
@@ -34,9 +37,11 @@ class BasicChess(UIBase):
         :param chess_name: 棋子标识符，P1 代表上方棋，P2 代表下方棋，也就是两方玩家代表的棋
         :param x: 列表映射的 x 坐标
         :param y: 列表映射的 y 坐标
-        :param size:
+        :param size: 棋子UI的大小
+        :param game_map: 游戏地图，一个 GameMap 实例对象
         """
 
+        self.game_map = game_map
         self.chess_type = chess_type
         self.chess_color = chess_color
         self.chess_name = chess_name
@@ -47,6 +52,8 @@ class BasicChess(UIBase):
         self.relative_y = y * size + 79
         self.block_size = size
         self.chess_hover = False # 判断鼠标是否在当前棋子 Mask 上
+        self.selected = False # 判断当前棋子是否被选中
+        self.toward = self.__towards[chess_name] # 棋子朝向
 
         super().__init__(screen, self.relative_x, self.relative_y, (size, size), color = None)
 
@@ -117,25 +124,23 @@ class BasicChess(UIBase):
 
         # 只在 UI 处于 hover 状态范围内进行碰撞箱计算，节省大量性能开销
         if self.is_hover:
-            # 获取鼠标位置
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            # 转换鼠标位置为相对于精灵的位置
-            offset_x = mouse_x - self.relative_x - self.offset_x
-            offset_y = mouse_y - self.relative_y - self.offset_y
             # 使用遮罩进行碰撞检测
-            if self.chess_img_mask.overlap(self.mouse_mask, (offset_x, offset_y)):
+            if self.mouse_in_mask(self.chess_img_mask):
                 if not self.chess_hover:
                     # 以下代码只会在鼠标进入时仅执行一次，避免重复绘制，浪费资源
                     self.chess_hover = True
-                    self.show_outline = 'blue'
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+                    # 如果未处于选中状态
+                    if not self.selected:
+                        self.show_outline = 'blue'
             else:
                 if self.chess_hover:
                     # 以下代码只会在鼠标进入时仅执行一次，避免重复绘制，浪费资源
                     self.chess_hover = False
-                    self.show_outline = None
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
+                    # 如果未处于选中状态
+                    if not self.selected:
+                        self.show_outline = None
 
         # 绘制轮廓
         if self.show_outline is not None:
@@ -151,8 +156,45 @@ class BasicChess(UIBase):
 
     def _mouse_leave(self, event: pygame.event.Event):
         super()._mouse_leave(event)
+        if not self.selected:
+            self.show_outline = None
         # 避免鼠标移动太快导致 Mask 没判断到已离开UI
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-        self.show_outline = None
         self.chess_hover = False
+
+    def _mouse_down(self, event: pygame.event.Event):
+        super()._mouse_down(event)
+        # 鼠标按下时，如果鼠标在遮罩内，则显示轮廓
+        if self.mouse_in_mask(self.chess_img_mask):
+            self.show_outline = 'orange'
+
+    def _mouse_up(self, event: pygame.event.Event):
+        super()._mouse_up(event)
+        # 鼠标按下时，如果鼠标在遮罩内，则执行相关函数
+        if self.mouse_in_mask(self.chess_img_mask):
+            if not self.selected:
+                self.show_outline = 'orange'
+                self.game_map.select_chess(self)
+            else:
+                self.game_map.cancel_select_chess()
+                self.show_outline = 'blue'
+
+    def active_map_block(self):
+        """
+        激活选中状态，具体内容交给子类重写
+        :return:
+        """
+        pass
+
+    def mouse_in_mask(self, mask):
+        """
+        判断鼠标是否在 mask 实例内，也就是是否发生碰撞
+        :return:
+        """
+        # 获取鼠标位置
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        # 转换鼠标位置为相对于精灵的位置
+        offset_x = mouse_x - self.relative_x - self.offset_x
+        offset_y = mouse_y - self.relative_y - self.offset_y
+        return mask.overlap(self.mouse_mask, (offset_x, offset_y))
 
