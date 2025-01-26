@@ -540,7 +540,7 @@ def open_create(screen: pygame.Surface, btn: StartSceneBtn):
 
         create_thank.mouse_enter(lambda event, option: (create_thank.set_text(font_color = (150, 150, 205), font_size = 20), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         create_thank.mouse_leave(lambda event, option: (create_thank.set_text(font_color = (255, 255, 255), font_size = 20), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-        create_thank.mouse_up(lambda event, option: open("https://github.com/oldsky11/chess/tree/pygame"))
+        create_thank.mouse_up(lambda event, option: open("https://github.com/NiButCrazy/chess-pygame/"))
 
         create_ui_mask.transition_opacity(200, 0.1, fps_clock, children_together = False)
         create_ui.transition_opacity(255, 1, fps_clock)
