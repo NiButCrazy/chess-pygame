@@ -15,9 +15,12 @@
 ## 更新日志
 [点我查看](https://github.com/NiButCrazy/chess-pygame/blob/pygame/CHANGELOG.md)
 
+## 游戏规则
+[点我查看](https://github.com/NiButCrazy/chess-pygame/blob/pygame/规则说明.md)
+
 ## 版本
 >释放版本:`v0.0.2`  
->Beta版本:`v0.0.4-Beta`
+>Beta版本:`v0.0.5-Beta`
 
 ## 语言
 >Python

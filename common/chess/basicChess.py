@@ -6,7 +6,6 @@
 import pygame
 from common.uiBase import UIBase
 from common import resources
-from common.gameMap import GameMap
 from typing import Literal
 
 
@@ -14,7 +13,7 @@ class BasicChess(UIBase):
     """
     棋子的基类,包含基础信息
     """
-
+    from common.gameMap import GameMap
     offset_x: int  # 棋子图片的 x 偏移量
     offset_y: int  # 棋子图片的 y 偏移量
     chess_img_size: tuple[int, int]  # 棋子图片的尺寸
@@ -53,6 +52,7 @@ class BasicChess(UIBase):
         self.block_size = size
         self.chess_hover = False # 判断鼠标是否在当前棋子 Mask 上
         self.selected = False # 判断当前棋子是否被选中
+        self.state: Literal['eaten', 'special', 'normal'] = 'normal' # 棋子状态
         self.toward = self.__towards[chess_name] # 棋子朝向
 
         super().__init__(screen, self.relative_x, self.relative_y, (size, size), color = None)
@@ -131,7 +131,9 @@ class BasicChess(UIBase):
                     self.chess_hover = True
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     # 如果未处于选中状态
-                    if not self.selected:
+                    if self.state == 'eaten':
+                        self.show_outline = 'red'
+                    elif not self.selected:
                         self.show_outline = 'blue'
             else:
                 if self.chess_hover:
@@ -159,19 +161,27 @@ class BasicChess(UIBase):
         if not self.selected:
             self.show_outline = None
         # 避免鼠标移动太快导致 Mask 没判断到已离开UI
-        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        if self.game_map.hover_block is None:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         self.chess_hover = False
 
     def _mouse_down(self, event: pygame.event.Event):
         super()._mouse_down(event)
-        # 鼠标按下时，如果鼠标在遮罩内，则显示轮廓
-        if self.mouse_in_mask(self.chess_img_mask):
-            self.show_outline = 'orange'
+        # 鼠标左键
+        if event.button == 1:
+            # 如果鼠标在遮罩内
+            if self.mouse_in_mask(self.chess_img_mask):
+                self.show_outline = 'orange'
+        # 鼠标右键
+        elif event.button == 3:
+            # 如果鼠标不在遮罩内
+            if not self.mouse_in_mask(self.chess_img_mask):
+                self.game_map.cancel_select_chess()
 
     def _mouse_up(self, event: pygame.event.Event):
         super()._mouse_up(event)
         # 鼠标按下时，如果鼠标在遮罩内，则执行相关函数
-        if self.mouse_in_mask(self.chess_img_mask):
+        if self.mouse_in_mask(self.chess_img_mask) and event.button == 1:
             if not self.selected:
                 self.show_outline = 'orange'
                 self.game_map.select_chess(self)

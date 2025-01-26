@@ -24,6 +24,19 @@ class CheChess(BasicChess):
 
 
     def active_map_block(self):
-        active_block = self.game_map.map_data[self.list_y + self.toward][self.list_x]
-        active_block.display = True
-        self.game_map.active_block_set.add(active_block)
+        # 通用模板， 象、后、马、王通用计算函数，只需要略微修改就可以通用
+        for v in [-1, 1]:
+            for x, y in [[0, 1], [1, 0]]:
+                for index in range(1, 8):
+                    dest_y = self.list_y + y * v * index
+                    dest_x = self.list_x + x * v * index
+                    if dest_y < 0 or dest_y > 7 or dest_x < 0 or dest_x > 7:
+                        continue
+                    dest_block = self.game_map.map_data[dest_y][dest_x]
+                    if dest_block.chess is None:
+                        dest_block.display = True
+                        self.game_map.active_block_set.add(dest_block)
+                    else:
+                        # 如果该区域是敌方棋子
+                        if dest_block.chess.chess_name != self.chess_name:
+                            self.game_map.change_chess_state(dest_block, 'eaten')
