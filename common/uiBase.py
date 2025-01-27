@@ -47,6 +47,10 @@ class UIChildrenList(list):
     """
     UI节点的子节点列表，提供了一系列方便的操作
     """
+    def __init__(self, parent_node):
+        super().__init__()
+        self.parent_node = parent_node
+
     def append(self, __object):
         """
         添加子节点到列表，并设置其父节点为此父节点本身
@@ -54,7 +58,7 @@ class UIChildrenList(list):
         :return:
         """
         super().append(__object)
-        __object.parent_node =self
+        __object.parent_node = self.parent_node
 
 
 class Timer:
@@ -142,7 +146,7 @@ class UIBase:
         self.font_size = font_size
         self.user_font_family = user_font_family # 是否使用用户自定义字体文件
         self.font_family = font_family
-        self.text:pygame.Surface | None = None # 最终字体surface对象
+        self.text: pygame.Surface | None = None # 最终字体surface对象
         self.pos_x = x # 原始x轴位置，最终渲染位置只靠rect属性
         self.pos_y = y # 原始y轴位置，最终渲染位置只靠rect属性
         self.width = size[0] # 实时宽度
@@ -151,9 +155,11 @@ class UIBase:
         self.original_height = size[1] # 原始高度，缩放时这个值不变
         self.center_anchor = center_anchor # 是否以中心点为锚点
         self.allow_opacity_transition_follow_parent = True # 是否允许父节点的透明度过渡对此节点的透明度过渡产生影响
+        self.allow_pos_transition_follow_parent = True # 是否允许父节点的移动过渡效果对此节点的移动过渡产生影响
         self.color = color # 背景颜色，只针对无背景图片的情况
         self.is_hover = False # 鼠标是否在UI上悬停
         self.enabled_event = enabled_event # UI 是否接收事件
+        self.enabled_event_children = True # UI 是否让子节点接收事件
         self.enabled_mouse_event = True # UI 是否接收鼠标事件
         self.enabled_keyboard_event = False # UI 是否接收键盘事件
         self.press_sound_effect: pygame.mixer.Sound | None = None # 用于播放鼠标按下音效
@@ -176,12 +182,19 @@ class UIBase:
         self.__opacity_step = 0
         self.__opacity_step_distance = 0
         self.__now_opacity_step = 0
+        # 移动过渡各参数
+        self.__pos_duration = 0
+        self.__dest_pos = (self.pos_x, self.pos_y)
+        self.__pos_step = 0
+        self.__pos_step_distance_x = 0
+        self.__pos_step_distance_y = 0
+        self.__now_pos_step = 0
         # 缩放过渡动画是否运行中
-        self.__transition_scale_running = False
+        self.transition_scale_running = False
         # 移动过渡动画是否运行中
-        self.__transition_move_running = False
+        self.transition_move_running = False
         # 透明度过渡动画是否运行中
-        self.__transition_opacity_running = False
+        self.transition_opacity_running = False
         # 存储按键事件绑定回调函数的字典
         self.__key_up_event_callback_dict = {}
         self.__key_down_event_callback_dict = {}
@@ -192,7 +205,7 @@ class UIBase:
         # 时间函数回调列表
         self.__timers = {"opacity":Timer(), "move":Timer(), "scale":Timer()}
         # 子节点列表
-        self.children:UIChildrenList[UIBase] = UIChildrenList()
+        self.children:UIChildrenList[UIBase] = UIChildrenList(self)
         # 初始化文本
         self.set_text(text,font_color,font_size, self.font_family)
         if size == (0,0):
@@ -228,13 +241,14 @@ class UIBase:
         children_stop_emit = False
 
         # 给子节点发送事件
-        # 最后渲染的(也就是最顶层的)ui最先接收到事件，防止事件被底层ui吞了，同一个按键事件只会被最顶层的UI处理
-        for index in range(len(self.children) - 1, -1, -1):
-            if_continue_emit = self.children[index].receive_event(event, **option)
-            # 如果已被目标UI截断，则其他UI不再调用的此事件的处理函数
-            if not if_continue_emit:
-                option["stop_emit"] = True
-                children_stop_emit = True
+        if self.enabled_event_children:
+            # 最后渲染的(也就是最顶层的)ui最先接收到事件，防止事件被底层ui吞了，同一个按键事件只会被最顶层的UI处理
+            for index in range(len(self.children) - 1, -1, -1):
+                if_continue_emit = self.children[index].receive_event(event, **option)
+                # 如果已被目标UI截断，则其他UI不再调用的此事件的处理函数
+                if not if_continue_emit:
+                    option["stop_emit"] = True
+                    children_stop_emit = True
 
         # 未开启接收事件直接返回
         if not self.enabled_event:
@@ -356,8 +370,10 @@ class UIBase:
         """
 
         self.__fps_clock = fps_clock
+        # 哪怕没显示也要执行，防止子节点脱节
         self.__transition_scale()
         self.__transition_opacity()
+        self.__transition_move_to()
 
         if not self.display:
             return
@@ -431,7 +447,7 @@ class UIBase:
         # 总缩放步数
         self.__scale_step = int( duration / self.__fps_clock )
         # 是否已经处于过渡中
-        self.__transition_scale_running = True
+        self.transition_scale_running = True
         # x轴缩放比例
         self.__scale_x = scale_x
         # y轴缩放比例
@@ -447,7 +463,7 @@ class UIBase:
         return self.__timers["scale"]
 
     def __transition_scale(self):
-        if self.__transition_scale_running:
+        if self.transition_scale_running:
             if self.__now_scale_step < self.__scale_step:
                 self.__now_scale_step += 1
                 # 新建两个个变量存储计算结果，节约性能
@@ -516,7 +532,7 @@ class UIBase:
             print(f'以下是错误报告: \033[31m{e}')
             sys.exit(1)
         # 是否已经处于过渡中
-        self.__transition_opacity_running = True
+        self.transition_opacity_running = True
         # 过渡步长
         if not duration == 0:
             self.__opacity_step_distance = ( self.opacity - dest_opacity ) / self.__opacity_step
@@ -532,7 +548,7 @@ class UIBase:
         return self.__timers["opacity"]
 
     def __transition_opacity(self):
-        if self.__transition_opacity_running:
+        if self.transition_opacity_running:
             if self.__now_opacity_step < self.__opacity_step:
                 self.__now_opacity_step += 1
                 self.opacity -= self.__opacity_step_distance
@@ -541,6 +557,67 @@ class UIBase:
                 self.opacity = self.__dest_opacity
                 self.__transition_opacity_running = False
                 self.__timers["opacity"].use_callback()
+
+    def transition_move_to(self, dest_pos: tuple[int, int] | list[int, int], duration: float = 0.0, fps_clock: float = 0.0, children_together: bool = True) -> Timer:
+        """
+        UI的缩放过渡效果
+        :param dest_pos: 目标绝对坐标
+        :param duration: (可选) 过渡动画完成时间
+        :param fps_clock: (可选) 游戏更新循环周期，此选项通常用于UI还未被加载进游戏主进程渲染更新中，起到预加载作用
+        :param children_together: (可选) 是否让子节点同步进行过渡动画，注意：不管什么情况，子节点必须先添加进父节点的Children列表，才能执行本函数，否则没有效果
+        :return:
+        """
+        # 过渡效果达成时间
+        self.__pos_duration = duration
+        # 目标坐标
+        self.__dest_pos = dest_pos
+        if fps_clock == 0.0:
+            fps_clock = self.__fps_clock
+        try:
+            # 总过渡步数
+            self.__pos_step = int( duration / fps_clock )
+        except  ZeroDivisionError as e:
+            print('出现 {f("除零错误", "red")}，可能是FPS过低导致动画尝试将数值除以零，建议将 {f("FPS调至30", "blue")} 以上')
+            print(f'以下是错误报告: \033[31m{e}')
+            sys.exit(1)
+        except TypeError as e:
+            print(f'出现 {f("类型错误", "red")}，可能是函数 {f("transition_opacity", "blue")} 在游戏循环开始之前被使用，如果想在初始化中使用，建议传入 {f("fps_block", "blue")} 参数')
+            print(f'以下是错误报告: \033[31m{e}')
+            sys.exit(1)
+        # 是否已经处于过渡中
+        self.transition_move_running = True
+        # 过渡步长
+        if not duration == 0:
+            self.__pos_step_distance_x = ( self.pos_x - dest_pos[0] ) / self.__pos_step
+            self.__pos_step_distance_y = ( self.pos_y - dest_pos[1] ) / self.__pos_step
+        # 目前过渡步数
+        self.__now_pos_step = 0
+        # 是否让子节点同步过渡
+        if children_together:
+            child: UIBase
+            for child in self.children:
+                if child.allow_pos_transition_follow_parent:
+                    child.transition_move_to(dest_pos, duration, fps_clock)
+
+        # 方便绑定过渡完成后的回调函数
+        return self.__timers["move"]
+
+    def __transition_move_to(self):
+        if self.transition_move_running:
+            if self.__now_pos_step < self.__pos_step:
+                self.__now_pos_step += 1
+                self.pos_x -= self.__pos_step_distance_x
+                self.pos_y -= self.__pos_step_distance_y
+                self.rect.x = self.pos_x
+                self.rect.y = self.pos_y
+            else:
+                # 防止过渡后缩放值有误差
+                self.pos_x = self.__dest_pos[0]
+                self.pos_y = self.__dest_pos[1]
+                self.rect.x = self.pos_x
+                self.rect.y = self.pos_y
+                self.transition_move_running = False
+                self.__timers["move"].use_callback()
 
     def set_background_image(self, path: str | pygame.Surface, use_circular_mask: bool = False):
         """
@@ -593,7 +670,7 @@ class UIBase:
         from .sceneManager import scene_manager
         if self in scene_manager.now_scene[0]:
             scene_manager.now_scene[0].remove(self)
-        if not self.parent_node is None:
+        if self.parent_node:
             self.parent_node.children.remove(self)
 
     def move_to(self, x: int, y: int):

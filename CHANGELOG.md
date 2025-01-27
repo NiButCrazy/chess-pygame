@@ -2,6 +2,19 @@
 
 *日志使用 [Simple Changelog 汉化版](https://github.com/NiButCrazy/simple-changelog-Chinese) 生成*
 
+## [0.0.6-Beta] - 2025-01-27
+### 新增内容
+- 添加了兵的“路过吃兵”、“兵的升变（差个选择UI）”
+- 添加了棋子移动的动画，并实现了“吃”这个功能
+
+### 作出更改
+- 更改了地图块的边框的显示的逻辑与方法
+
+### 修复错误
+- 修复了 UIChildrenList 类添加 node_parent 时添加成自己的BUG
+- 修复了地图块激活时会无视路径上棋子的 BUG
+
+
 ## [0.0.5-Beta] - 2025-01-26
 ### 新增内容
 - gameMap 函数添加了地图方块的激活特效

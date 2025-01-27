@@ -39,3 +39,4 @@ class HouChess(BasicChess):
                         # 如果该区域是敌方棋子
                         if dest_block.chess.chess_name != self.chess_name:
                             self.game_map.change_chess_state(dest_block, 'eaten')
+                        break

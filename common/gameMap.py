@@ -28,11 +28,13 @@ class MapBlock:
         self.width = self.height = size
         self.opacity = 255
         self.display = display
+        self.switch_block: None | MapBlock = None # 存储一个关联地图块
         # 棋子状态对应的背景色
         self.chess_state_to_bg = {
             'normal': 'orange',
             'special': 'blue',
-            'eaten': 'red'
+            'eaten': 'red',
+            'LuGuo': 'purple'
         }
         # 初始化绘制区域
         self.rect = pygame.Rect(
@@ -41,7 +43,14 @@ class MapBlock:
             self.width,
             self.height
         )
-        self.border = self.create_border(border_width=4, border_color=resources.MAP_BLOCK_BORDER_COLOR)
+        # 棋子状态对应的边框色
+        self.border_dict = {
+            'normal': self.create_border(4, 'orange'),
+            'special': self.create_border(4, (0, 198, 255)),
+            'eaten': self.create_border(4, 'red'),
+            'LuGuo': self.create_border(4, 'purple')
+        }
+        self.border: Literal['normal', 'special', 'eaten', 'LuGuo'] = 'normal'
         self.chess: None | BasicChess = None
         self.hover = False # 鼠标是否在方块上, 只有 Display 为 True 时才绘判断
         # 通用背景字典
@@ -54,7 +63,7 @@ class MapBlock:
         # 方块背景
         self.block_bg: Literal['orange', 'red', 'blue', 'purple'] | None = None
 
-    def create_block_bg(self, color: tuple[int, int, int] | str, opacity = 80) -> pygame.Surface:
+    def create_block_bg(self, color: tuple[int, int, int] | str, opacity = 80):
         # 方块背景色
         block_bg = pygame.Surface((self.width, self.height))
         block_bg.fill(color)
@@ -75,7 +84,7 @@ class MapBlock:
         if self.display:
             if self.block_bg:
                 self.screen.blit(self.block_bg_dict[self.block_bg], self.rect)
-            self.screen.blit(self.border, self.rect)
+            self.screen.blit(self.border_dict[self.border], self.rect)
             mouse_pos = pygame.mouse.get_pos()
             if self.rect.collidepoint(mouse_pos):
                 if not self.hover:
@@ -83,7 +92,12 @@ class MapBlock:
                     # 以下代码仅在鼠标进入时触发一次
                     if self.chess is None:
                         # 设置背景色
-                        self.block_bg = 'orange'
+                        if self.border == 'normal':
+                            self.block_bg = 'orange'
+                        elif self.border == 'LuGuo':
+                            self.block_bg = 'purple'
+                            self.switch_block.chess.show_outline = 'red'
+
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     else:
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -101,6 +115,8 @@ class MapBlock:
                         self.game_map.hover_block = None
                     # 删除背景色
                     self.block_bg = None
+                    if self.border == 'LuGuo':
+                        self.switch_block.chess.show_outline = None
 
 
     def create_border(self, border_width, border_color) -> pygame.Surface:
@@ -156,6 +172,7 @@ class MapBlock:
     def pos(self):
         return self.list_x, self.list_y
 
+
 class GameMap:
     """
     地图类，负责与外界交互
@@ -198,16 +215,15 @@ class GameMap:
                 self.map_data[y][x] = MapBlock(self, x, y, self.block_size, False)
                 self.container.children.append(self.map_data[y][x])
 
-        # container.children.append(MapBlock(container.screen, 0, 0, self.block_size))
-
         # 绘制棋盘
         for row in range(8):
             for col in range(8):
                 color = resources.WHITE if (row + col) % 2 == 0 else resources.BLACK
-                pygame.draw.rect(self.game_map_base, color, (col * self.block_size + 4,
-                                                             row * self.block_size + 4,
-                                                        self.block_size,
-                                                        self.block_size))
+                pygame.draw.rect(self.game_map_base, color,
+                                 (col * self.block_size + 4,
+                                        row * self.block_size + 4,
+                                        self.block_size,
+                                        self.block_size))
 
         container.set_background_image(self.game_map_base)
         container.mouse_up(self.map_position)
@@ -253,11 +269,22 @@ class GameMap:
                 )
 
                 # 地图方块记录数据
-                # self.map_data[chess_pos[chess_name][0]][x].chess = chess_bin
+                self.map_data[chess_pos[chess_name][0]][x].chess = chess_bin
                 self.map_data[chess_pos[chess_name][1]][x].chess = chess_other
 
-                # container.children.append(chess_bin)
+                container.children.append(chess_bin)
                 container.children.append(chess_other)
+
+        self.choose_ui = UIBase(
+            container.screen,
+            container.pos_x,
+            container.pos_x,
+            (size, size),
+            (0, 0, 0),
+            enabled_event = False
+        )
+        self.choose_ui.opacity = 128
+        # self.container.children.append(self.choose_ui)
 
     # noinspection PyUnusedLocal
     def map_position(self, event: pygame.event.Event, option: dict[str, Any]):
@@ -271,6 +298,7 @@ class GameMap:
         # 如果点击右键
         if event.button == 3:
             self.cancel_select_chess()
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
             return
 
         elif event.button == 1:
@@ -284,13 +312,20 @@ class GameMap:
             list_x = relative_pos_x // self.block_size
             list_y = relative_pos_y // self.block_size
 
-            # self.map_data[list_y][list_x].display = True
-            # self.active_block_set.add(self.map_data[list_y][list_x])
-            # print(self.active_block_set)
+            dest_block = self.map_data[list_y][list_x]
+
+            if self.selected_chess:
+                if dest_block.display and dest_block.chess is None:
+                    if dest_block.border == 'LuGuo':
+                        dest_block.switch_block.chess.die()
+                    # 移动棋子, 带有清屏效果，建议往后放
+                    self.selected_chess.move_to(list_x, list_y)
+
+
 
     def cancel_select_chess(self):
         """
-        取消任何棋子的选中状态
+        取消所有棋子的选中状态
         :return:
         """
         if self.selected_chess is not None:
@@ -300,7 +335,10 @@ class GameMap:
             self.selected_chess = None
             for block in self.active_block_set:
                 block.display = False
-                if block.chess: block.chess.state = 'normal'
+                if block.chess:
+                    block.chess.state = 'normal'
+                block.border = 'normal'
+                block.switch_block = None
             self.active_block_set.clear()
 
     def select_chess(self, chess):
@@ -315,7 +353,9 @@ class GameMap:
         self.selected_chess.selected = True
         self.selected_chess.active_map_block()
 
-    def change_chess_state(self, block: MapBlock, state: Literal['normal', 'eaten', 'special']):
+    def change_chess_state(self, block: MapBlock, state: Literal[
+                                                            'normal', 'eaten', 'special'
+                                                        ]):
         """
         改变棋子状态与激活对应 block 的特效
         :param block: MapBlock 实例
@@ -323,7 +363,10 @@ class GameMap:
         :return:
         """
         block.change_render_index(63)
-        block.change_border(resources.MAP_BLOCK_BORDER_COLOR_EAT)
+        block.border = state
         block.display = True
         block.chess.state = state
         self.active_block_set.add(block)
+
+    def show_choose_ui(self):
+        pass

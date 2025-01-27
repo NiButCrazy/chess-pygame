@@ -47,37 +47,39 @@ class BasicChess(UIBase):
         self.show_outline: Literal['orange', 'red', 'blue', 'purple'] | None = None # 轮廓颜色
         self.list_x = x
         self.list_y = y
-        self.relative_x = x * size + 79
-        self.relative_y = y * size + 79
+        relative_x = x * size + 79 # 等同于 pos_x
+        relative_y = y * size + 79 # 等同于 pos_y
         self.block_size = size
         self.chess_hover = False # 判断鼠标是否在当前棋子 Mask 上
         self.selected = False # 判断当前棋子是否被选中
         self.state: Literal['eaten', 'special', 'normal'] = 'normal' # 棋子状态
         self.toward = self.__towards[chess_name] # 棋子朝向
-
-        super().__init__(screen, self.relative_x, self.relative_y, (size, size), color = None)
+        
+        super().__init__(screen, relative_x, relative_y, (size, size), color = None)
 
         # 棋子的图片
         self.chess_img = resources.CHESS_img_map[chess_color][chess_type]
         # 棋子轮廓基础信息
-        self.chess_img_outline_pos = (self.relative_x, self.relative_y)
+        self.chess_img_outline_pos = (self.pos_x, self.pos_y)
         # 棋子缩放
         self.chess_img = pygame.transform.smoothscale(self.chess_img, self.chess_img_size)
         # 棋子轮廓遮罩
         self.chess_img_mask = pygame.mask.from_surface(self.chess_img)
 
         # 棋子图片位置
-        self.chess_img_pos = (self.relative_x + self.offset_x, self.relative_y + self.offset_y)
+        self.chess_img_pos = (self.pos_x + self.offset_x, self.pos_y + self.offset_y)
         # 通用轮廓字典
         self.outline_dict = {
             'orange': self.create_outline('orange', width = 4),
             'red': self.create_outline('red', width = 4),
             'blue': self.create_outline((0, 198, 255), width = 4),
-            'purple': self.create_outline((255, 0, 255), width = 4)
+            'purple': self.create_outline((255, 0, 255), width = 4),
+            'green': self.create_outline((0, 255, 0), width = 4),
+            'yellow': self.create_outline((255, 255, 0), width = 4)
         }
 
 
-    def create_outline(self, color: tuple[int, int, int] | str, width = 4) -> pygame.Surface:
+    def create_outline(self, color: tuple[int, int, int] | str, width = 4):
         """
         创建轮廓
         :param color: 轮廓颜色
@@ -144,17 +146,15 @@ class BasicChess(UIBase):
                     if not self.selected:
                         self.show_outline = None
 
+        if self.transition_move_running:
+            self.chess_img_pos = (self.pos_x + self.offset_x, self.pos_y + self.offset_y)
+
         # 绘制轮廓
         if self.show_outline is not None:
             self.screen.blit(self.outline_dict[self.show_outline], self.chess_img_outline_pos)
         # 绘制棋子
         self.screen.blit(self.chess_img, self.chess_img_pos)
 
-    # def _mouse_enter(self, event: pygame.event.Event):
-    #     super()._mouse_enter(event)
-    #     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-    #     self.show_outline = 'blue'
-    #
 
     def _mouse_leave(self, event: pygame.event.Event):
         super()._mouse_leave(event)
@@ -171,7 +171,11 @@ class BasicChess(UIBase):
         if event.button == 1:
             # 如果鼠标在遮罩内
             if self.mouse_in_mask(self.chess_img_mask):
-                self.show_outline = 'orange'
+                # 如果到达了边缘
+                if self.state == 'normal':
+                    self.show_outline = 'orange'
+                elif self.state == 'edge':
+                    pass
         # 鼠标右键
         elif event.button == 3:
             # 如果鼠标不在遮罩内
@@ -183,8 +187,15 @@ class BasicChess(UIBase):
         # 鼠标按下时，如果鼠标在遮罩内，则执行相关函数
         if self.mouse_in_mask(self.chess_img_mask) and event.button == 1:
             if not self.selected:
-                self.show_outline = 'orange'
-                self.game_map.select_chess(self)
+                if self.state == 'normal':
+                    self.show_outline = 'orange'
+                    self.game_map.select_chess(self)
+                elif self.state == 'eaten':
+                    self.game_map.selected_chess.move_to(self.list_x, self.list_y)
+                    self.die()
+                elif self.state == 'edge':
+                    pass
+
             else:
                 self.game_map.cancel_select_chess()
                 self.show_outline = 'blue'
@@ -204,7 +215,52 @@ class BasicChess(UIBase):
         # 获取鼠标位置
         mouse_x, mouse_y = pygame.mouse.get_pos()
         # 转换鼠标位置为相对于精灵的位置
-        offset_x = mouse_x - self.relative_x - self.offset_x
-        offset_y = mouse_y - self.relative_y - self.offset_y
+        offset_x = mouse_x - self.pos_x - self.offset_x
+        offset_y = mouse_y - self.pos_y - self.offset_y
         return mask.overlap(self.mouse_mask, (offset_x, offset_y))
 
+    def move_to(self, list_x: int, list_y: int):
+        """
+        棋子移动函数
+        :param list_x: 列表坐标 x
+        :param list_y: 列表坐标 y
+        :return:
+        """
+        dest_pos = (
+            int(list_x * self.block_size + 79),
+            int(list_y * self.block_size + 79)
+        )
+        self.game_map.container.enabled_event_children = False
+        self.game_map.container.enabled_event = False
+        self.game_map.cancel_select_chess()
+        # 删除原位置的棋子位置信息
+        self.game_map.map_data[self.list_y][self.list_x].chess = None
+        self.game_map.map_data[self.list_y][self.list_x].border = 'normal'
+        self.list_x = list_x
+        self.list_y = list_y
+        # 添加新位置棋子位置信息
+        self.game_map.map_data[list_y][list_x].chess = self
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        self.transition_move_to(dest_pos, duration = 0.3).then(self.finish_move)
+
+    def finish_move(self):
+        """
+        棋子结束移动后的回调函数
+        :return:
+        """
+        self.game_map.container.enabled_event_children = True
+        self.game_map.container.enabled_event = True
+        # 重置绘图位置
+        self.chess_img_outline_pos = (self.pos_x, self.pos_y)
+        # 纠正绘图位置偏差
+        self.chess_img_pos = (self.pos_x + self.offset_x, self.pos_y + self.offset_y)
+
+    def die(self):
+        """
+        顾名思义，棋子死亡
+        :return:
+        """
+        # 删除原位置的棋子位置信息
+        self.game_map.map_data[self.list_y][self.list_x].chess = None
+        self.game_map.map_data[self.list_y][self.list_x].border = 'normal'
+        self.close()
