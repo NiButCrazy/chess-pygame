@@ -7,6 +7,7 @@ import pygame
 from common.uiBase import UIBase
 from common import resources
 from typing import Literal
+from common.inputBox import message_box
 
 
 class BasicChess(UIBase):
@@ -44,7 +45,7 @@ class BasicChess(UIBase):
         self.chess_type = chess_type
         self.chess_color = chess_color
         self.chess_name = chess_name
-        self.show_outline: Literal['orange', 'red', 'blue', 'purple'] | None = None # 轮廓颜色
+        self.show_outline: Literal['orange', 'red', 'blue', 'purple', 'green'] | None = None # 轮廓颜色
         self.list_x = x
         self.list_y = y
         relative_x = x * size + 79 # 等同于 pos_x
@@ -124,7 +125,7 @@ class BasicChess(UIBase):
     def update(self, fps_clock):
         super().update(fps_clock)
 
-        # 只在 UI 处于 hover 状态范围内进行碰撞箱计算，节省大量性能开销
+        # 只在 UI 处于 hover 状态范围内进行碰撞箱计算，节省大量性能开销，同时也方便了事件管理
         if self.is_hover:
             # 使用遮罩进行碰撞检测
             if self.mouse_in_mask(self.chess_img_mask):
@@ -191,8 +192,12 @@ class BasicChess(UIBase):
                     self.show_outline = 'orange'
                     self.game_map.select_chess(self)
                 elif self.state == 'eaten':
-                    self.game_map.selected_chess.move_to(self.list_x, self.list_y)
+                    # 注意顺序，die 一定要在 move 前
                     self.die()
+                    self.game_map.selected_chess.move_to(self.list_x, self.list_y)
+                    if self.chess_type == 'wang':
+                        message_box(f'{self.game_map.round_name} 获得胜利', '恭喜','info')
+                    self.game_map.change_round()
                 elif self.state == 'edge':
                     pass
 

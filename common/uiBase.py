@@ -83,10 +83,12 @@ class Timer:
     def use_callback(self):
         if not self.__callback is None:
             if self.__option:
-                return self.__callback(self.__option)
+                result = self.__callback(self.__option)
             else:
-                return self.__callback()
-
+                result = self.__callback()
+            self.__callback = None
+            self.__option = None
+            return result
 
 class UIBase:
     """
@@ -491,7 +493,7 @@ class UIBase:
                 # 防止过渡后缩放值有误差
                 self.width = self.original_width * self.__scale_x
                 self.height = self.original_height * self.__scale_y
-                self.__transition_scale_running = False
+                self.transition_scale_running = False
                 self.rect.size = (
                     self.width,
                     self.height
@@ -543,7 +545,6 @@ class UIBase:
             for child in self.children:
                 if child.allow_opacity_transition_follow_parent:
                     child.transition_opacity(dest_opacity, duration, fps_clock)
-
         # 方便绑定过渡完成后的回调函数
         return self.__timers["opacity"]
 
@@ -555,8 +556,9 @@ class UIBase:
             else:
                 # 防止过渡后缩放值有误差
                 self.opacity = self.__dest_opacity
-                self.__transition_opacity_running = False
+                self.transition_opacity_running = False
                 self.__timers["opacity"].use_callback()
+
 
     def transition_move_to(self, dest_pos: tuple[int, int] | list[int, int], duration: float = 0.0, fps_clock: float = 0.0, children_together: bool = True) -> Timer:
         """
@@ -713,3 +715,5 @@ class UIBase:
         """
         return self.__background_img
 
+    def get_fps_clock(self):
+        return self.__fps_clock

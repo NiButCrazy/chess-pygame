@@ -3,7 +3,9 @@
 """
 
 import pygame
-from typing import Any, Literal
+from typing import Any, Literal, Callable
+
+from common.sceneManager import scene_manager
 from common.uiBase import UIBase
 from common import resources
 
@@ -48,9 +50,10 @@ class MapBlock:
             'normal': self.create_border(4, 'orange'),
             'special': self.create_border(4, (0, 198, 255)),
             'eaten': self.create_border(4, 'red'),
-            'LuGuo': self.create_border(4, 'purple')
+            'LuGuo': self.create_border(4, 'purple'),
+            'WangChe': self.create_border(4, 'purple')
         }
-        self.border: Literal['normal', 'special', 'eaten', 'LuGuo'] = 'normal'
+        self.border: Literal['normal', 'special', 'eaten', 'LuGuo', 'WangChe'] = 'normal'
         self.chess: None | BasicChess = None
         self.hover = False # 鼠标是否在方块上, 只有 Display 为 True 时才绘判断
         # 通用背景字典
@@ -97,6 +100,9 @@ class MapBlock:
                         elif self.border == 'LuGuo':
                             self.block_bg = 'purple'
                             self.switch_block.chess.show_outline = 'red'
+                        elif self.border == 'WangChe':
+                            self.block_bg = 'purple'
+                            self.switch_block.chess.show_outline = 'green'
 
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     else:
@@ -116,6 +122,8 @@ class MapBlock:
                     # 删除背景色
                     self.block_bg = None
                     if self.border == 'LuGuo':
+                        self.switch_block.chess.show_outline = None
+                    elif self.border == 'WangChe':
                         self.switch_block.chess.show_outline = None
 
 
@@ -203,6 +211,10 @@ class GameMap:
         self.block_size = (size - self.map_border * 2) // 8
         # 选中的 chess
         self.selected_chess: BasicChess | None = None
+        # 当前首发回合名字, 默认为 P2
+        self.round_name: Literal['P1', 'P2'] = 'P2'
+        # 保存双方名字对应棋子的字典
+        self.chess_dict: dict[Literal['P1', 'P2'], list[BasicChess]] = {'P1': [], 'P2': []}
         # 鼠标当前悬停的方块
         self.hover_block: MapBlock | None = None
         # 信息叠加层已激活的对象集合
@@ -235,7 +247,7 @@ class GameMap:
             "P1": "black",
             "P2": "white",
         }
-        chess_type_list = ["che", 'ma', 'xiang', 'wang', 'hou', 'xiang', 'ma', 'che']
+        chess_type_list = ["che", 'ma', 'xiang', 'hou', 'wang', 'xiang', 'ma', 'che']
         chess_type_dict = {
             "che": CheChess,
             "ma": MaChess,
@@ -272,6 +284,15 @@ class GameMap:
                 self.map_data[chess_pos[chess_name][0]][x].chess = chess_bin
                 self.map_data[chess_pos[chess_name][1]][x].chess = chess_other
 
+                # 写入回合管理字典
+                self.chess_dict[chess_name].append(chess_bin)
+                self.chess_dict[chess_name].append(chess_other)
+
+                # 把非当前回合的棋子禁止响应事件
+                if not self.round_name == chess_name:
+                    chess_bin.enabled_event = False
+                    chess_other.enabled_event = False
+
                 container.children.append(chess_bin)
                 container.children.append(chess_other)
 
@@ -281,10 +302,14 @@ class GameMap:
             container.pos_x,
             (size, size),
             (0, 0, 0),
-            enabled_event = False
+            enabled_event = True
         )
-        self.choose_ui.opacity = 128
-        # self.container.children.append(self.choose_ui)
+
+        self.choose_ui.display = False
+        self.choose_ui.name = 'choose ui'
+        self.choose_ui.opacity = 0
+        self.container.children.append(self.choose_ui)
+
 
     # noinspection PyUnusedLocal
     def map_position(self, event: pygame.event.Event, option: dict[str, Any]):
@@ -318,9 +343,20 @@ class GameMap:
                 if dest_block.display and dest_block.chess is None:
                     if dest_block.border == 'LuGuo':
                         dest_block.switch_block.chess.die()
+                    # 移动王车
+                    che_block = None
+                    origin_x = self.selected_chess.list_x
+                    origin_y = self.selected_chess.list_y
+                    if dest_block.border == 'WangChe':
+                        che_block = dest_block.switch_block
+                        che_block.chess.show_outline = None
                     # 移动棋子, 带有清屏效果，建议往后放
                     self.selected_chess.move_to(list_x, list_y)
-
+                    # 因为清屏了，所以再判断一次
+                    if che_block:
+                        che_block.chess.move_to(origin_x, origin_y)
+                    # 切换回合
+                    self.change_round()
 
 
     def cancel_select_chess(self):
@@ -333,9 +369,13 @@ class GameMap:
             self.selected_chess.selected = False
             self.selected_chess.show_outline = None
             self.selected_chess = None
+            self.hover_block = None
             for block in self.active_block_set:
                 block.display = False
                 if block.chess:
+                    # 禁用非当前回合的棋子响应事件
+                    if not block.chess.chess_name == self.round_name:
+                        block.chess.enabled_event = False
                     block.chess.state = 'normal'
                 block.border = 'normal'
                 block.switch_block = None
@@ -368,5 +408,89 @@ class GameMap:
         block.chess.state = state
         self.active_block_set.add(block)
 
-    def show_choose_ui(self):
-        pass
+    def create_choose_ui(self,
+                         title: str,
+                         option: dict[str, pygame.Surface],
+                         callback: Callable[[str], Any],
+                         image_size: tuple[int, int] = (100, 100),
+                         remove_text = False
+                         ):
+        """
+        创建一个选择 UI
+        :param title: 标题
+        :param option: 选择项，是一个字典类型，键-是选项名，值-是选项图片 Surface 实例
+        :param callback: 回调函数, 会传入一个最终选项字符串作为参数
+        :parameter image_size: 图片大小
+        :parameter remove_text: 是否移除文字
+        :return: 返回一个 UIBase 实例
+        """
+        self.choose_ui.children.clear()
+        self.choose_ui.enabled_event = True
+        self.choose_ui.enabled_event_children = True
+        title_ui = UIBase(self.container.screen, 400, 200, (0,0), text = title,
+                          font_family = 'font.ttf', user_font_family = True, center_anchor = True,
+                          font_size = 40, font_color = (255, 255, 255), enabled_event = False)
+        title_ui.opacity = 0
+        len_option = len(option)
+        # 计算间隔
+        jiange = (self.size - len_option * image_size[0])/(len_option + 1)
+        index = 1
+
+        for option_title, image in option.items():
+            x_pox = 40 + int( ( jiange + image_size[0] ) * index )
+            option_ui = UIBase(self.container.screen, x_pox,400,  image_size, center_anchor = True)
+            option_ui.set_background_image(image)
+            option_text = UIBase(self.container.screen, x_pox, 500, (0, 0), text = option_title,
+                                 font_family = 'font.ttf', user_font_family = True, center_anchor = True,
+                                 font_size = 30, font_color = (255, 255, 255), enabled_event = False)
+            if remove_text:
+                option_text.display = False
+            self.choose_ui.children.append(option_ui)
+            option_ui.children.append(option_text)
+            option_ui.mouse_enter(lambda event, o:
+                                  (o['ui'].set_text(font_color = (150, 150, 205), font_size = 40),
+                                   pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND),
+                                   o['ui'].parent_node.transition_scale(1.1, 1.1, 0.05)
+                                   ),ui = option_text)
+            option_ui.mouse_leave(lambda event, o:
+                                  (o['ui'].set_text(font_color = (255, 255, 255), font_size = 30),
+                                   pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW),
+                                   o['ui'].parent_node.transition_scale(1, 1, 0.05)
+                                   ), ui = option_text)
+            option_ui.mouse_up(lambda event, o: (self.close_choose_ui(),callback(o['result'])),
+                               result = option_title)
+            option_ui.opacity = 0
+            option_text.opacity = 0
+            index += 1
+
+        self.choose_ui.children.append(title_ui)
+        self.choose_ui.display = True
+        self.choose_ui.transition_opacity(180, duration = 0.4,
+                                          children_together = False, fps_clock = scene_manager.FPS_CLOCK
+        )# .then(lambda : print(self.choose_ui.display))
+        for ui in self.choose_ui.children:
+            ui.transition_opacity(255, duration = 0.3, fps_clock = scene_manager.FPS_CLOCK)
+
+
+    def close_choose_ui(self):
+        """
+        关闭选项卡 UI 触发的方法
+        :return:
+        """
+        def close():
+            self.choose_ui.display = False
+        self.choose_ui.transition_opacity(0, duration = 0.3).then(close)
+        self.choose_ui.enabled_event = False
+        self.choose_ui.enabled_event_children = False
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+    def change_round(self):
+        """
+        改变回合
+        :return:
+        """
+        for chess in self.chess_dict[self.round_name]:
+            chess.enabled_event = False
+        self.round_name: Literal['P1', 'P2'] = 'P1' if self.round_name == 'P2' else 'P2'
+        for chess in self.chess_dict[self.round_name]:
+            chess.enabled_event = True

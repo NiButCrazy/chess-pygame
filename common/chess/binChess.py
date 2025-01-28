@@ -6,8 +6,19 @@
 import pygame
 from .basicChess import BasicChess
 from common.gameMap import GameMap
+from .houChess import HouChess
+from .cheChess import CheChess
+from .maChess import MaChess
+from .xiangChess import XiangChess
+from common import resources
 from typing import Literal
 
+chess_switch = {
+    '皇后': HouChess,
+    '车': CheChess,
+    '马': MaChess,
+    '象': XiangChess
+}
 
 class BinChess(BasicChess):
 
@@ -52,6 +63,7 @@ class BinChess(BasicChess):
             dest_block = self.game_map.map_data[dest_y][dest_x]
             # 如果该区域是敌方棋子
             if dest_block.chess and dest_block.chess.chess_name != self.chess_name:
+                dest_block.chess.enabled_event = True
                 self.game_map.change_chess_state(dest_block, 'eaten')
 
         # =========== 路过吃兵的代码 ================
@@ -68,7 +80,7 @@ class BinChess(BasicChess):
                 near_chess.move_two_step and
                 near_chess.move_step_num == 1
                 ):
-
+                # 获取可以吃的格子
                 dest_block = self.game_map.map_data[near_chess.list_y + self.toward][near_chess.list_x]
                 if dest_block.chess is None:
                     dest_block.display = True
@@ -102,9 +114,28 @@ class BinChess(BasicChess):
             self.state = 'edge'
             self.show_outline = 'green'
             self.game_map.select_chess(self)
-            self.game_map.container.enabled_event_children = False
-            self.game_map.container.enabled_event = False
+            # self.game_map.container.enabled_event_children = False
+            # self.game_map.container.enabled_event = False
+            self.game_map.create_choose_ui('选择升变对象', {
+                '皇后': resources.CHESS_img_map['white']['hou'],
+                '车': resources.CHESS_img_map['white']['che'],
+                '马': resources.CHESS_img_map['white']['ma'],
+                '象': resources.CHESS_img_map['white']['xiang']
+            }, self.become_chess, (70, 120))
 
+    def become_chess(self, chess_type: str):
+        """
+        变成某个棋子
+        :param chess_type: 棋子类型
+        :return:
+        """
+        new_chess: BasicChess = chess_switch[chess_type](
+            self.screen, self.list_x, self.list_y, self.block_size,
+            self.game_map, self.chess_color, self.chess_name)
 
+        self.die()
+        self.game_map.map_data[self.list_y][self.list_x].chess = new_chess
+        self.game_map.container.children.insert(65, new_chess)
+        self.game_map.cancel_select_chess()
 
         
