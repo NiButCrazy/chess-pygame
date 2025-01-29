@@ -8,7 +8,7 @@ __all__ = [
     "scene_manager"
 ]
 from .uiBase import UIBase
-from .config import get_config
+from .config import get_config, abs_path
 
 
 class SceneManager:
@@ -33,7 +33,7 @@ class SceneManager:
         :parameter bg_music: (可选) 背景音乐名
         :return:
         """
-        self.scene_music_list[scene_name] = "../resource/bgm/" + bg_music
+        self.scene_music_list[scene_name] = abs_path("../resource/bgm/") + "/" + bg_music
         self.scene_list[scene_name] = scene
 
     def load_scene(self, scene_name: str) -> None:

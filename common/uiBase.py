@@ -6,6 +6,7 @@ from typing import Callable,Any
 
 import pygame
 from common.resources import f
+from common.config import abs_path
 
 
 class Group:
@@ -156,6 +157,7 @@ class UIBase:
         self.user_font_family = user_font_family # 是否使用用户自定义字体文件
         self.font_family = font_family
         self.text: pygame.Surface | None = None # 最终字体surface对象
+        self.font_path = abs_path('../resource/font') + '/'
         self.pos_x = x # 原始x轴位置，最终渲染位置只靠rect属性
         self.pos_y = y # 原始y轴位置，最终渲染位置只靠rect属性
         self.width = size[0] # 实时宽度
@@ -429,7 +431,7 @@ class UIBase:
         if font_family == "Microsoft YaHei":
             font_family = self.font_family
         else:
-            font_family = '../resource/font/' + font_family
+            font_family = self.font_path + font_family
             self.font_family = font_family
 
         # 如果没有使用自定义字体

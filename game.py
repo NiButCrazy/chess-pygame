@@ -2,6 +2,11 @@
 逻辑代码集合处和游戏入口
 """
 
+
+import os
+# 把当前目录设置为工作目录，防止外部运行脚本无法找到自己写的包和模块, 对，说的就是你，傻逼 Pyinstaller
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from common import config
 import pygame
 import time

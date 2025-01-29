@@ -10,10 +10,16 @@ from tkinter import messagebox
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = '1'
 
 # 防止变量被其他模块导入造成污染
-__all__ = ["get_config", "get_config_all", "write_config", "save_config", "reload_config"]
+__all__ = ["get_config", "get_config_all", "write_config", "save_config", "reload_config", 'abs_path']
 
-# 把当前目录设置为工作目录，防止外部运行某个脚本无法定位目录
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+# 绝对路径，防止外部运行某个脚本无法定位目录
+def abs_path(path: str):
+    return os.path.normpath(os.path.join(os_path, path))
+
+
+os_path = os.path.dirname(os.path.abspath(__file__))
+config_path = abs_path("../config.json")
 
 
 def error_message(message):
@@ -44,7 +50,7 @@ def write_config(key: str, value: any) -> bool:
     """
     data[key] = value
     try:
-        with open("../config.json", 'w', encoding='utf-8') as f:
+        with open(config_path, 'w', encoding='utf-8') as f:
             # noinspection PyTypeChecker
             json.dump(data, f, indent=4, ensure_ascii=False)
         return True
@@ -60,7 +66,7 @@ def save_config() -> bool:
     :return:返回是否保存成功
     """
     try:
-        with open("../config.json", 'w', encoding='utf-8') as f:
+        with open(config_path, 'w', encoding='utf-8') as f:
             # noinspection PyTypeChecker
             json.dump(data, f, indent=4, ensure_ascii=False)
         return True
@@ -71,7 +77,7 @@ def save_config() -> bool:
 def reload_config():
     global data
     try:
-        with open("../config.json", 'r', encoding='utf-8',) as f:
+        with open(config_path, 'r', encoding='utf-8',) as f:
             data = json.load(f)
 
     except FileNotFoundError:
@@ -80,7 +86,7 @@ def reload_config():
         error_message("配置文件不是有效的 JSON 格式")
 
 try:
-    with open("../config.json", 'r', encoding='utf-8',) as file:
+    with open(config_path, 'r', encoding='utf-8',) as file:
         data = json.load(file)
 
 except FileNotFoundError:
