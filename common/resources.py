@@ -76,6 +76,7 @@ pygame.mixer.init()
 # 音效
 EFFECT_hover = pygame.mixer.Sound("../resource/sound effect/btn_sound effect.mp3")
 EFFECT_press = pygame.mixer.Sound("../resource/sound effect/btn_press_sound_effect.mp3")
+CHESS_move = pygame.mixer.Sound("../resource/sound effect/chess_move.mp3")
 
 # 游戏UI图标
 ICON = pygame.image.load("../resource/ui/icon.png")
@@ -107,6 +108,8 @@ GAME_bg_img = pygame.image.load("../resource/image/background-img2.jpg")
 GAME_ui_play_img = pygame.image.load("../resource/ui/play.png")
 GAME_ui_pause_img = pygame.image.load("../resource/ui/paused.png")
 GAME_ui_back_btn_img = pygame.image.load("../resource/ui/left.png")
+GAME_ui_refresh_btn_img = pygame.image.load("../resource/ui/refresh.png")
+GAME_img_over_info_img = pygame.image.load("../resource/image/game_over.png")
 
 # 棋子图片映射表
 CHESS_img_map: dict[str, dict[str, pygame.Surface]] = {

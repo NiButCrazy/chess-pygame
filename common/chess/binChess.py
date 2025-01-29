@@ -110,17 +110,18 @@ class BinChess(BasicChess):
         super().finish_move()
         # 抵达地图边缘时
         if self.list_y == 0 or self.list_y == 7:
+            # 如果游戏结束则不判断，防止吃掉地方王之后就变异了
+            if self.game_map.game_over:
+                return
             # 兵的升变
             self.state = 'edge'
             self.show_outline = 'green'
             self.game_map.select_chess(self)
-            # self.game_map.container.enabled_event_children = False
-            # self.game_map.container.enabled_event = False
             self.game_map.create_choose_ui('选择升变对象', {
-                '皇后': resources.CHESS_img_map['white']['hou'],
-                '车': resources.CHESS_img_map['white']['che'],
-                '马': resources.CHESS_img_map['white']['ma'],
-                '象': resources.CHESS_img_map['white']['xiang']
+                '皇后': resources.CHESS_img_map[self.chess_color]['hou'],
+                '车': resources.CHESS_img_map[self.chess_color]['che'],
+                '马': resources.CHESS_img_map[self.chess_color]['ma'],
+                '象': resources.CHESS_img_map[self.chess_color]['xiang']
             }, self.become_chess, (70, 120))
 
     def become_chess(self, chess_type: str):
@@ -132,10 +133,11 @@ class BinChess(BasicChess):
         new_chess: BasicChess = chess_switch[chess_type](
             self.screen, self.list_x, self.list_y, self.block_size,
             self.game_map, self.chess_color, self.chess_name)
-
+        new_chess.enabled_event = False
         self.die()
         self.game_map.map_data[self.list_y][self.list_x].chess = new_chess
         self.game_map.container.children.insert(65, new_chess)
         self.game_map.cancel_select_chess()
+        self.game_map.chess_dict[self.chess_name].append(new_chess)
 
         

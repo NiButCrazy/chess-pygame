@@ -19,8 +19,8 @@
 [点我查看](https://github.com/NiButCrazy/chess-pygame/blob/pygame/规则说明.md)
 
 ## 版本
->释放版本:`v0.0.2`  
->Beta版本:`v0.0.7-Beta`
+>释放版本:`v0.1.0 正式版`  
+>Beta版本:`v0.1.0 正式版`
 
 ## 语言
 >Python

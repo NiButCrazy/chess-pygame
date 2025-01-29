@@ -81,13 +81,20 @@ class Timer:
         self.__option = option
 
     def use_callback(self):
-        if not self.__callback is None:
+        if self.__callback:
+            # 记录旧的回调函数，防止 self.__callback() 之后又定义了 self 的 __callback
+            # 适用于一个对象反复嵌套 then 函数
+            old_callback = self.__callback
+            old_option = self.__option
             if self.__option:
                 result = self.__callback(self.__option)
             else:
                 result = self.__callback()
-            self.__callback = None
-            self.__option = None
+            # 清除重复的回调函数，防止重复调用
+            if old_callback == self.__callback:
+                self.__callback = None
+            if old_option == self.__option:
+                self.__option = None
             return result
 
 class UIBase:
@@ -209,7 +216,7 @@ class UIBase:
         # 子节点列表
         self.children:UIChildrenList[UIBase] = UIChildrenList(self)
         # 初始化文本
-        self.set_text(text,font_color,font_size, self.font_family)
+        self.set_text( text, font_color, font_size, self.font_family)
         if size == (0,0):
             # 高度与宽度会保持0，这样可以做到透明背景文本
             new_size = self.text.get_size()
@@ -400,14 +407,14 @@ class UIBase:
         for child in self.children:
             child.update(fps_clock)
 
-    def set_text(self, content:str | None = None, font_color: tuple | str = (-1,-1,-1), font_size: int = 0, font_family: str = "", bold: bool = False):
+    def set_text(self, content:str | None = None, font_color: tuple | str = (-1,-1,-1), font_size: int = 0, font_family: str = "Microsoft YaHei", bold: bool = False):
         """
         设置文本内容、颜色、字号、字体
         :param content: (可选) 文本内容
         :param font_color: (可选) 颜色
         :param font_size: (可选) 字号
         :param bold: (可选) 是否加粗
-        :param font_family: (可选) 字体,如果是自定义字体请填写文件名称(并非路径)，并且一定要设置user_font_family为True
+        :param font_family: (可选) 字体,如果是自定义字体请填写文件名称(并非路径)，并且一定要设置 user_font_family 为 True
         :return:
         """
         if content is None:content = self.content
@@ -419,17 +426,19 @@ class UIBase:
         if font_size == 0:font_size = self.font_size
         else: self.font_size = font_size
 
-        if font_family == "": font_family = self.font_family
+        if font_family == "Microsoft YaHei":
+            font_family = self.font_family
         else:
             font_family = '../resource/font/' + font_family
             self.font_family = font_family
 
-
+        # 如果没有使用自定义字体
         if not self.user_font_family:
-            font = pygame.font.SysFont(font_family,font_size)
+            font = pygame.font.SysFont(font_family, font_size)
             if bold:
                 font.set_bold(True)
             self.text = font.render(content, True, font_color)
+        # 如果使用自定义字体
         else:
             font = pygame.font.Font(font_family,font_size)
             if bold:
@@ -558,7 +567,6 @@ class UIBase:
                 self.opacity = self.__dest_opacity
                 self.transition_opacity_running = False
                 self.__timers["opacity"].use_callback()
-
 
     def transition_move_to(self, dest_pos: tuple[int, int] | list[int, int], duration: float = 0.0, fps_clock: float = 0.0, children_together: bool = True) -> Timer:
         """

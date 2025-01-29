@@ -69,7 +69,7 @@ class SceneManager:
                 self.now_scene[0].append(black_surface),
                 black_surface.transition_opacity(0, 0.5, self.FPS_CLOCK).then(
                     lambda : (
-                        black_surface.close()
+                        black_surface.close(),
                     )
                 ),
 

@@ -26,8 +26,8 @@ screen = pygame.display.set_mode((config.get_config("width"), config.get_config(
 scene_manager.push_scene("menu", menuScene.create_scene(screen), bg_music="music2.mp3")
 scene_manager.push_scene("game", gameScene.create_scene(screen), bg_music="music1.mp3")
 # 加载启动场景
-# scene_manager.load_welcome_scene(screen)
-scene_manager.load_scene("game")
+scene_manager.load_welcome_scene(screen)
+# scene_manager.load_scene("game")
 # 帧率控制
 clock = pygame.time.Clock()
 

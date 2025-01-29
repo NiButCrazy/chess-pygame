@@ -7,7 +7,6 @@ import pygame
 from common.uiBase import UIBase
 from common import resources
 from typing import Literal
-from common.inputBox import message_box
 
 
 class BasicChess(UIBase):
@@ -57,7 +56,11 @@ class BasicChess(UIBase):
         self.toward = self.__towards[chess_name] # 棋子朝向
         
         super().__init__(screen, relative_x, relative_y, (size, size), color = None)
-
+        # 鼠标悬浮音效
+        self.hover_sound_effect = resources.EFFECT_hover
+        self.hover_sound_effect.set_volume(0.4)
+        # 棋子移动音效
+        self.move_sound_effect = resources.CHESS_move
         # 棋子的图片
         self.chess_img = resources.CHESS_img_map[chess_color][chess_type]
         # 棋子轮廓基础信息
@@ -132,10 +135,13 @@ class BasicChess(UIBase):
                 if not self.chess_hover:
                     # 以下代码只会在鼠标进入时仅执行一次，避免重复绘制，浪费资源
                     self.chess_hover = True
+                    self.hover_sound_effect.play()
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     # 如果未处于选中状态
                     if self.state == 'eaten':
                         self.show_outline = 'red'
+                        if self.chess_type == 'wang':
+                            self.show_outline = 'purple'
                     elif not self.selected:
                         self.show_outline = 'blue'
             else:
@@ -154,8 +160,8 @@ class BasicChess(UIBase):
         if self.show_outline is not None:
             self.screen.blit(self.outline_dict[self.show_outline], self.chess_img_outline_pos)
         # 绘制棋子
+        self.chess_img.set_alpha(self.opacity)
         self.screen.blit(self.chess_img, self.chess_img_pos)
-
 
     def _mouse_leave(self, event: pygame.event.Event):
         super()._mouse_leave(event)
@@ -196,7 +202,19 @@ class BasicChess(UIBase):
                     self.die()
                     self.game_map.selected_chess.move_to(self.list_x, self.list_y)
                     if self.chess_type == 'wang':
-                        message_box(f'{self.game_map.round_name} 获得胜利', '恭喜','info')
+                        self.game_map.game_over = True
+                        color = {
+                            'P1': '黑方',
+                            'P2': '白方'
+                        }
+                        from ..scene.gameScene import load_new_game
+                        self.game_map.create_choose_ui(
+                            f'{color[self.game_map.round_name]}获得胜利',
+                            {'重新开始': resources.ICON},
+                            lambda e:load_new_game(self.game_map.container),
+                            (140, 140),
+                        )
+
                     self.game_map.change_round()
                 elif self.state == 'edge':
                     pass
@@ -247,6 +265,7 @@ class BasicChess(UIBase):
         self.game_map.map_data[list_y][list_x].chess = self
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         self.transition_move_to(dest_pos, duration = 0.3).then(self.finish_move)
+        self.move_sound_effect.play()
 
     def finish_move(self):
         """
@@ -268,4 +287,5 @@ class BasicChess(UIBase):
         # 删除原位置的棋子位置信息
         self.game_map.map_data[self.list_y][self.list_x].chess = None
         self.game_map.map_data[self.list_y][self.list_x].border = 'normal'
+        self.game_map.chess_dict[self.chess_name].remove(self)
         self.close()

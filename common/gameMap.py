@@ -31,6 +31,7 @@ class MapBlock:
         self.opacity = 255
         self.display = display
         self.switch_block: None | MapBlock = None # 存储一个关联地图块
+        self.allow_opacity_transition_follow_parent = False
         # 棋子状态对应的背景色
         self.chess_state_to_bg = {
             'normal': 'orange',
@@ -61,7 +62,8 @@ class MapBlock:
             'orange': self.create_block_bg('orange'),
             'red': self.create_block_bg('red'),
             'blue': self.create_block_bg((0, 198, 255)),
-            'purple': self.create_block_bg((255, 0, 255))
+            'purple': self.create_block_bg((255, 0, 255)),
+            'yellow': self.create_block_bg('yellow')
         }
         # 方块背景
         self.block_bg: Literal['orange', 'red', 'blue', 'purple'] | None = None
@@ -107,8 +109,11 @@ class MapBlock:
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                     else:
                         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-                        # 设置背景色
-                        self.block_bg = self.chess_state_to_bg[self.chess.state]
+                        # 设置背景色, 将军的背景色更特别
+                        if self.chess.state == 'eaten' and self.chess.chess_type == 'wang':
+                            self.block_bg = 'purple'
+                        else:
+                            self.block_bg = self.chess_state_to_bg[self.chess.state]
 
                     self.game_map.hover_block = self
             else:
@@ -125,7 +130,6 @@ class MapBlock:
                         self.switch_block.chess.show_outline = None
                     elif self.border == 'WangChe':
                         self.switch_block.chess.show_outline = None
-
 
     def create_border(self, border_width, border_color) -> pygame.Surface:
 
@@ -197,6 +201,8 @@ class GameMap:
         # 防止导致循环引用
         from .chess.basicChess import BasicChess
 
+        # 游戏是否结束
+        self.game_over = False
         # 地图大小
         self.size = size
         # 地图背景基底
@@ -221,6 +227,10 @@ class GameMap:
         self.active_block_set: set[MapBlock] = set()
         # 存储地图数据的对象
         self.map_data: list[list[MapBlock | None]] = [[ None for _ in range(8)] for _ in range(8)]
+        # 鼠标按下
+        self.select_sound_effect = resources.EFFECT_press
+        self.select_sound_effect.set_volume(0.1)
+        self.hover_sound_effect = resources.EFFECT_hover
         # 注入地图数据
         for y in range(8):
             for x in range(8):
@@ -288,6 +298,10 @@ class GameMap:
                 self.chess_dict[chess_name].append(chess_bin)
                 self.chess_dict[chess_name].append(chess_other)
 
+                # 新游戏载入时可以跟随父容器淡入
+                chess_bin.opacity = 0
+                chess_other.opacity = 0
+
                 # 把非当前回合的棋子禁止响应事件
                 if not self.round_name == chess_name:
                     chess_bin.enabled_event = False
@@ -296,6 +310,7 @@ class GameMap:
                 container.children.append(chess_bin)
                 container.children.append(chess_other)
 
+        # 选择 UI 初始化
         self.choose_ui = UIBase(
             container.screen,
             container.pos_x,
@@ -304,11 +319,36 @@ class GameMap:
             (0, 0, 0),
             enabled_event = True
         )
-
         self.choose_ui.display = False
+        self.choose_ui.allow_opacity_transition_follow_parent = False
         self.choose_ui.name = 'choose ui'
         self.choose_ui.opacity = 0
         self.container.children.append(self.choose_ui)
+        # 回合信息 UI 初始化
+        self.round_info_ui = UIBase(
+            container.screen,
+            600,
+            740,
+            (0, 0),
+            (0, 0, 0),
+            '白棋先行',
+            enabled_event = False,
+            font_size = 30,
+            font_family = 'font.ttf',
+            user_font_family = True,
+        )
+        self.round_info_ui_img = UIBase(
+            container.screen,
+            715,
+            737,
+            (22, 35),
+            enabled_event = False,
+        )
+        self.round_info_ui_img.set_background_image(resources.CHESS_img_map['white']['bin'])
+        self.round_info_ui.opacity = 0
+        self.round_info_ui_img.opacity = 0
+        self.round_info_ui.children.append(self.round_info_ui_img)
+        self.container.children.append(self.round_info_ui)
 
 
     # noinspection PyUnusedLocal
@@ -355,9 +395,9 @@ class GameMap:
                     # 因为清屏了，所以再判断一次
                     if che_block:
                         che_block.chess.move_to(origin_x, origin_y)
+
                     # 切换回合
                     self.change_round()
-
 
     def cancel_select_chess(self):
         """
@@ -392,6 +432,7 @@ class GameMap:
         self.selected_chess = chess
         self.selected_chess.selected = True
         self.selected_chess.active_map_block()
+        self.select_sound_effect.play()
 
     def change_chess_state(self, block: MapBlock, state: Literal[
                                                             'normal', 'eaten', 'special'
@@ -437,7 +478,7 @@ class GameMap:
         index = 1
 
         for option_title, image in option.items():
-            x_pox = 40 + int( ( jiange + image_size[0] ) * index )
+            x_pox = 80 + int( ( jiange + image_size[0] ) * index - image_size[0]/2)
             option_ui = UIBase(self.container.screen, x_pox,400,  image_size, center_anchor = True)
             option_ui.set_background_image(image)
             option_text = UIBase(self.container.screen, x_pox, 500, (0, 0), text = option_title,
@@ -450,14 +491,18 @@ class GameMap:
             option_ui.mouse_enter(lambda event, o:
                                   (o['ui'].set_text(font_color = (150, 150, 205), font_size = 40),
                                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND),
-                                   o['ui'].parent_node.transition_scale(1.1, 1.1, 0.05)
+                                   o['ui'].parent_node.transition_scale(1.1, 1.1, 0.05),
+                                   self.hover_sound_effect.play()
                                    ),ui = option_text)
             option_ui.mouse_leave(lambda event, o:
                                   (o['ui'].set_text(font_color = (255, 255, 255), font_size = 30),
                                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW),
                                    o['ui'].parent_node.transition_scale(1, 1, 0.05)
                                    ), ui = option_text)
-            option_ui.mouse_up(lambda event, o: (self.close_choose_ui(),callback(o['result'])),
+            option_ui.mouse_up(lambda event, o: (
+                                    self.close_choose_ui(),callback(o['result']),
+                                    self.select_sound_effect.play()
+                                ),
                                result = option_title)
             option_ui.opacity = 0
             option_text.opacity = 0
@@ -470,7 +515,6 @@ class GameMap:
         )# .then(lambda : print(self.choose_ui.display))
         for ui in self.choose_ui.children:
             ui.transition_opacity(255, duration = 0.3, fps_clock = scene_manager.FPS_CLOCK)
-
 
     def close_choose_ui(self):
         """
@@ -489,8 +533,27 @@ class GameMap:
         改变回合
         :return:
         """
+        if self.game_over:
+            self.round_info_ui.set_text(content = '游戏结束')
+            self.round_info_ui_img.width = 50
+            self.round_info_ui_img.height = 50
+            self.round_info_ui_img.rect.x = 725
+            self.round_info_ui_img.rect.y = 730
+            self.round_info_ui_img.set_background_image(resources.GAME_img_over_info_img)
+            return
+
         for chess in self.chess_dict[self.round_name]:
             chess.enabled_event = False
         self.round_name: Literal['P1', 'P2'] = 'P1' if self.round_name == 'P2' else 'P2'
         for chess in self.chess_dict[self.round_name]:
             chess.enabled_event = True
+
+        chinese_name = {
+            'P2': '白棋',
+            'P1': '黑棋'
+        }
+        # 改变回合信息
+        self.round_info_ui.set_text( content = "{0}回合".format(chinese_name[self.round_name]))
+        self.round_info_ui_img.set_background_image(
+            resources.CHESS_img_map[self.chess_color[self.round_name]]['bin']
+        )

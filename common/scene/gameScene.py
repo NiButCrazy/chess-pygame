@@ -80,7 +80,7 @@ def create_scene(screen: pygame.Surface) -> tuple[list[UIBase], pygame.Surface]:
     base_info_text = "双人互啄 {0}".format(config["player_names"][config["player_name_index"]])
 
     # 基础信息UI
-    base_info = UIBase(screen, -50, 0, (800, 50), (255, 255, 255), base_info_text, 23,
+    base_info = UIBase(screen, 0, 0, (800, 50), (255, 255, 255), base_info_text, 23,
                        (0, 0, 0), font_path, True, enabled_event = False)
 
     scene_manager.ui_dict["base_info"] = base_info
@@ -106,17 +106,25 @@ def create_scene(screen: pygame.Surface) -> tuple[list[UIBase], pygame.Surface]:
         )
     )
     back_btn.mouse_down(lambda event, option: back_btn.transition_scale(1.1, 1.1, 0.1))
+    # 刷新按钮
+    refresh_btn = UIBase(screen, 750, 15, (20, 20))
+    refresh_btn.set_background_image(resources.GAME_ui_refresh_btn_img)
+    refresh_btn.opacity = 0
+    refresh_btn.mouse_enter(lambda event, option: (refresh_btn.transition_opacity(255, 0.0), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND), hover_sound_effect.play()))
+    refresh_btn.mouse_leave(lambda event, option: (refresh_btn.transition_opacity(100, 0.0), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+    refresh_btn.mouse_up(lambda event, option: (load_new_game(game_ui), press_sound_effect.play()))
+    refresh_btn.enabled_event = False
     # 游戏加载渲染区域
     game_ui = UIBase(screen, 75, 75, (640,640))
     game_ui.opacity = 0
     # 开始游戏按钮
-    start_game_btn = UIBase(screen, 400, 200, (0, 0), text = "开始游戏", font_size = 30,
+    start_game_btn = UIBase(screen, 400, 200, (0, 0), text = "菜鸡博弈", font_size = 30,
                             center_anchor = True, user_font_family = True, font_family = font_path)
 
     start_game_btn.mouse_up(
         lambda e, a: (
             start_game_btn.transition_opacity(0, 0.5).then(start_game, ui = game_ui,
-                                                           btn = start_game_btn),
+                                                           btn = start_game_btn, refresh_btn = refresh_btn),
             press_sound_effect.play(),
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW),
             fade_out_bg_img(1)
@@ -132,9 +140,10 @@ def create_scene(screen: pygame.Surface) -> tuple[list[UIBase], pygame.Surface]:
         base_info,
         back_btn,
         game_ui,
-        # start_game_btn
+        refresh_btn,
+        start_game_btn
     ]
-    load_new_game(game_ui)
+    # load_new_game(game_ui)
     return ui_list, background_surface
 
 
@@ -147,9 +156,11 @@ def load_new_game(ui: UIBase, **option):
     :param option: 函数携带参数
     :return:
     """
-    ui.opacity = 255 # 调试用
-    # ui.transition_opacity(255, 1) # 正常淡入
+    # ui.opacity = 255 # 调试用
+    ui.children.clear()
     game_map = GameMap(ui, 640)
+    ui.transition_opacity(255, 1) # 正常淡入
+
     # 如果游戏是第一次开始，则...
     if not event_manager.game_has_started:
         event_manager.game_has_started = True
@@ -163,6 +174,9 @@ def start_game(option: dict[str, UIBase]):
     """
     game_ui = option["ui"]
     btn = option["btn"]
+    refresh_btn = option["refresh_btn"]
+    refresh_btn.transition_opacity(100, 0.5)
+    refresh_btn.enabled_event = True
     load_new_game(game_ui)
     btn.close()
 
