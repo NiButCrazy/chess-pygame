@@ -1,0 +1,7 @@
+.idea
+.vscode
+desktop.ini
+__pycache__/
+*.pyc
+dist/
+build/

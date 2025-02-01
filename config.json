@@ -1,0 +1,12 @@
+{
+    "__comment__": "这是注释",
+    "version": "v0.1.0 正式版",
+    "height": 800,
+    "width": 800,
+    "FPS": 60,
+    "volume": 0.5,
+    "player_names": [
+        "未命名"
+    ],
+    "player_name_index": 0
+}
